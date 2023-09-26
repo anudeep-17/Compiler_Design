@@ -30,3 +30,8 @@ void abminstructionrunner(FILE* abminstructionfile)
 		}	
 	}
 }
+
+void abmkeywordhelper(char* keyword, char* command)
+{
+	
+}

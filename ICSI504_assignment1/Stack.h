@@ -3,8 +3,8 @@
 
 int  isEmpty();
 int  IsFull();
-int  PeekStack();
-int  PopStack();
-int  PushIntoStack();
+char*  PeekStack();
+char*  PopStack();
+void  PushIntoStack(char* data);
 
 #endif
