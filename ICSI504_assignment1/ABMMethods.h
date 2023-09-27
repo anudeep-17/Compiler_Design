@@ -1,6 +1,6 @@
 #ifndef ABMMethods
 #define ABMMethods
-
-void abminstructionrunner(FILE* abmInstructionsfile);
+#include "Stack.h"
+void abminstructionrunner(FILE* abmInstructionsfile, struct CharStack* stack);
 
 #endif

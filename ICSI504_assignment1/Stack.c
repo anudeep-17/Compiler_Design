@@ -1,61 +1,67 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "Stack.h"
-#define Stacksize 1024
 
-char* stack[Stacksize];
-int top = -1;
 
-int isEmpty() 
+void initialize(struct CharStack* stack)
 {
-	if (top == -1)
-    		return 1;
-  	else
-    		return 0;
+	stack->top = -1;
 }
 
-int IsFull() 
+int isEmpty(struct CharStack* stack)
 {
-	if (top == Stacksize - 1) 
-	{
-		return 1;
-  	} 
-	else 
-	{
-    		return 0;
-  	}
+	return stack->top == -1;
 }
 
-char* PeekStack() 
-{ 
-	return stack[top]; 
-}
-
-char* PopStack() 
+int IsFull(struct CharStack* stack)
 {
-  	char* temp;
-  	if (!isEmpty()) 
-  	{
-    		temp = stack[top];
-    		top = top - 1;
-    		return temp;
-  	} 
-	else 
-	{
-    		printf("Stack empty \n");
-		return NULL;
-  	}
+	return stack->top == StackSize-1;
 }
 
-void PushIntoStack(char* data) 
+void PushIntoStack(struct CharStack* stack, const char* item)
 {
-	if (!IsFull()) 
+	if(IsFull(stack))
 	{
-    		top = top + 1;
-    		stack[top] = data;
-  	} 
-	else 
-	{
-    		printf("stack is full\n");
-  	}
+		printf("Stack is full.....\n ");
+		return;
+	}
+	stack->stackitems[++stack->top] = strdup(item);
 }
+
+char* PopStack(struct CharStack* stack)
+{
+	if(isEmpty(stack))
+	{
+		printf("stack is empty... nothing to pop \n");
+		return '\0';
+	}
+	char* popitem = stack->stackitems[stack->top];
+	stack->top--;
+	return popitem;
+}
+
+char* PeekStack(struct CharStack* stack)
+{
+	 if(isEmpty(stack))
+        {
+                printf("stack is empty... nothing to pop \n");
+                return '\0';
+        }
+	return stack->stackitems[stack->top];
+}
+
+void PrintStack(struct CharStack* stack)
+{
+	if(isEmpty(stack))
+	{
+		printf("Stack is empty....\n");
+		return;
+	}
+	printf("Stack contents: ");
+	for(int i = 0; i<= stack->top; i++)
+	{
+		printf("%s", stack->stackitems[i]);
+	}
+	printf("\n");
+}	
