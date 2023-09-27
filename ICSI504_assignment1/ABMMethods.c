@@ -164,6 +164,14 @@ void abmkeywordhelper(const char* keyword, const char* command, struct CharStack
         }
 	else if(strcmp(keyword, "rvalue") == 0)
         {
+		if(FindIfInStack(stack, command))
+		{
+			printf("element found");
+		}
+		else
+		{
+			PushIntoStack(stack, "0");
+		}
         }
 }
 

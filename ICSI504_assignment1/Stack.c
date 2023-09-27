@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "Stack.h"
+#include <stdbool.h>
 
 
 void initialize(struct CharStack* stack)
@@ -65,3 +66,15 @@ void PrintStack(struct CharStack* stack)
 	}
 	printf("\n");
 }	
+
+bool FindIfInStack(struct CharStack* stack, const char* address)
+{
+	for(int i = 0; i<= stack->top; i++)
+	{
+		if(stack->stackitems[i] == address)
+		{
+			return true;
+		}
+	}
+	return false;
+}
