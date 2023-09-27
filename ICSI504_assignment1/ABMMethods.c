@@ -4,6 +4,7 @@
 #include "Stack.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 void trimleadtrailspaces(char* line)
 {
@@ -69,8 +70,103 @@ void abmkeywordhelper(const char* keyword, const char* command, struct CharStack
 		char resulttochar[result];
 		sprintf(resulttochar, "%d", result);
 		PushIntoStack(stack, resulttochar);
-	}	
+	}
+	else if(*keyword == '+')
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int result = left + right;
+                char resulttochar[result];
+                sprintf(resulttochar, "%d", result);
+                PushIntoStack(stack, resulttochar);
+        }
+	else if(*keyword == '*')
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int result = left * right;
+                char resulttochar[result];
+                sprintf(resulttochar, "%d", result);
+                PushIntoStack(stack, resulttochar);
+        }	
+	else if(*keyword == '/')
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):1;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int result = left / right;
+                char resulttochar[result];
+                sprintf(resulttochar, "%d", result);
+                PushIntoStack(stack, resulttochar);
+        }
+	else if(strcmp(keyword, "div") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int result = left % right;
+                char resulttochar[result];
+                sprintf(resulttochar, "%d", result);
+                PushIntoStack(stack, resulttochar);
+        }
+	else if(*keyword == '&')
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result = ((left == 1)? true:false) & ((right == 1)? true: false);
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(*keyword == '|')
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result = ((left == 1)? true:false) | ((right == 1)? true: false);
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(*keyword == '!')
+        {
+                int argument = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result = ((argument == 1)? false:true);
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, "<>") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result =  (left!=right);
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, "<=") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result =  left<=right;
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, ">=") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result =  left>=right;
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, "<") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result =  left<right;
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, ">") == 0)
+        {
+                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                bool result =  left>right;
+                PushIntoStack(stack, result?"1":"0");
+        }
+	else if(strcmp(keyword, "rvalue") == 0)
+        {
+        }
 }
+
 
 void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack)
 {
