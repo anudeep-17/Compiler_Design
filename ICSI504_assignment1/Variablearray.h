@@ -4,12 +4,14 @@
 #define Maxsize 1024
 
 struct Stringarray{
-	char Stringarray[Maxsize][Maxsize];
+	char data[Maxsize][Maxsize];
+	int currentsize;
 };
 
-int isEmpty(struct Stringarray array);
-int isFull(struct Stringarray array);
-void append(struct Stringarray array, const char* data);
-char* atindex(struct Stringarray array, int location);
-char addressofdata(struct Stringarray array, const char* data);
+void initializeStrings(struct Stringarray* array);
+int isEmptyStrings(struct Stringarray* array);
+int isFullStrings(struct Stringarray* array);
+void append(struct Stringarray* array, const char* data);
+char* atindex(struct Stringarray* array, int location);
+char* addressofdata(struct Stringarray* array, const char* data);
 #endif
