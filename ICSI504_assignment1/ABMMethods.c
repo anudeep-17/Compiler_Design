@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include "addresstovaluedict.h"
+#include "Variablearray.h"
 
 void trimleadtrailspaces(char* line)
 {
@@ -41,7 +43,7 @@ void trimleadtrailspaces(char* line)
 }
 
 
-void abmkeywordhelper(const char* keyword, const char* command, struct CharStack* stack)
+void abmkeywordhelper(const char* keyword, const char* command, struct CharStack* stack, struct Stringarray* array, struct Map* map)
 {
 	//printf("current command: \"%s\"\n", command);
 	
@@ -164,19 +166,25 @@ void abmkeywordhelper(const char* keyword, const char* command, struct CharStack
         }
 	else if(strcmp(keyword, "rvalue") == 0)
         {
-		if(FindIfInStack(stack, command))
+		if(FindIfInStack(stack, addressofdata(array, command)))
 		{
-			printf("element found");
+			int value = find(map, addressofdata(array, command));
+			char charvalue[20];
+			sprintf(charvalue, "%d", value);
+	
+			PushIntoStack(stack, charvalue);
 		}
 		else
 		{
+			append(array, command);
+			insert(map, command, 0);
 			PushIntoStack(stack, "0");
 		}
         }
 }
 
 
-void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack)
+void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack,struct Stringarray* array, struct Map* map)
 {
 	
 	if (abminstructionfile == NULL) 
@@ -213,7 +221,7 @@ void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack)
 		}
 		trimleadtrailspaces(keyword);
 		trimleadtrailspaces(command);	
-		abmkeywordhelper(keyword,command, stack);		
+		abmkeywordhelper(keyword,command, stack, array, map);		
 	}	
 }
 

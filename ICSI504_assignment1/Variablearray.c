@@ -46,12 +46,16 @@ char* atindex(struct Stringarray* array, int location)
 
 char* addressofdata(struct Stringarray* array, const char* data)
 {
+	static char address[20];
+
 	for(int i = 0; i<Maxsize; i++)
 	{
 		if(strcmp(array->data[i], data) == 0)
 		{
-			return array->data[i];
+			snprintf(address, sizeof(address), "%p", (void*)&(array->data[i]));
+			return address;
 		}
 	}
+	return NULL;
 }
 

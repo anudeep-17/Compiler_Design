@@ -8,14 +8,16 @@
 int main()
 {
 	struct CharStack stack;
-	initialize(&stack);		
-	//FILE* abmFile = abmFileReader("abmfiles/operatorsTest.abm");
-	//abminstructionrunner(abmFile, &stack);
+	initialize(&stack);
 
-struct Stringarray array;
-initializeStrings(&array);
-
-struct Map map;
-initializeMap(&map);
+	struct Stringarray variables;
+	initializeStrings(&variables);
+	
+	struct Map variablevaluemap;
+	initializeMap(&variablevaluemap);
+	
+	FILE* abmFile = abmFileReader("abmfiles/operatorsTest.abm");
+	
+	abminstructionrunner(abmFile, &stack, &variables, &variablevaluemap);
 	return 0;
 }
