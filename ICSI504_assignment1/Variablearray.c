@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "Variablearray.h"
-
+#include <stdbool.h>
 
 void initializeStrings(struct Stringarray* array)
 {

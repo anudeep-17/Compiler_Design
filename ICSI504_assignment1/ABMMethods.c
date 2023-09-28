@@ -177,10 +177,36 @@ void abmkeywordhelper(const char* keyword, const char* command, struct CharStack
 		else
 		{
 			append(array, command);
-			insert(map, command, 0);
+			insert(map, addressofdata(array, command), 0);
 			PushIntoStack(stack, "0");
 		}
         }
+	else if(strcmp(keyword, "lvalue") == 0)
+	{
+		append(array, command);
+ 		insert(map, addressofdata(array, command), 0);
+                PushIntoStack(stack, addressofdata(array, command));
+	}
+	else if(strcmp(keyword, ":=") == 0)
+	{
+		int value = !isEmpty(stack)? atoi(PopStack(stack)):0;
+		char* address = !isEmpty(stack)? PeekStack(stack): NULL;
+		
+		if(find(map, address) != -1)
+		{
+			insert(map, address, value);
+			PopStack(stack);
+		}
+		else
+		{
+			printf("given l value never encountered...\n");
+		}
+	}
+	else if(strcmp(keyword, "copy") == 0)
+	{
+		PushIntoStack(stack, PeekStack(stack));
+	}
+	
 }
 
 
