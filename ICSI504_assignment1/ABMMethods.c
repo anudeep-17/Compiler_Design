@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include "addresstovaluedict.h"
 #include "Variablearray.h"
+#include "IndexKeywordCommandPair.h"
 
 void trimleadtrailspaces(char* line)
 {
@@ -43,170 +44,173 @@ void trimleadtrailspaces(char* line)
 }
 
 
-void abmkeywordhelper(const char* keyword, const char* command, struct CharStack* stack, struct Stringarray* array, struct Map* map)
+void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringarray* array, struct Map* map)
 {
 	//printf("current command: \"%s\"\n", command);
-	
-        if(strcmp(keyword, "show") == 0)
-        {
-                printf("%s\n", command);
-        }
-	else if(strcmp(keyword, "print") == 0)
+	for(int i = 0; i< pair->currentpairsize; i++)
 	{
-		char* peek = PeekStack(stack);
-		(peek != NULL)? printf("%s\n", peek): printf("no element in stack to peek\n");
-	}
-	else if(strcmp(keyword, "pop") == 0)
-	{
-		PopStack(stack);
-	}
-	else if(strcmp(keyword, "push") == 0)
-	{
-		PushIntoStack(stack,command);
-	}
-	else if(*keyword == '-')
-	{
-		int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-		int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-		int result = left - right;
-		char resulttochar[result];
-		sprintf(resulttochar, "%d", result);
-		PushIntoStack(stack, resulttochar);
-	}
-	else if(*keyword == '+')
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int result = left + right;
-                char resulttochar[result];
-                sprintf(resulttochar, "%d", result);
-                PushIntoStack(stack, resulttochar);
-        }
-	else if(*keyword == '*')
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int result = left * right;
-                char resulttochar[result];
-                sprintf(resulttochar, "%d", result);
-                PushIntoStack(stack, resulttochar);
-        }	
-	else if(*keyword == '/')
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):1;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int result = left / right;
-                char resulttochar[result];
-                sprintf(resulttochar, "%d", result);
-                PushIntoStack(stack, resulttochar);
-        }
-	else if(strcmp(keyword, "div") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int result = left % right;
-                char resulttochar[result];
-                sprintf(resulttochar, "%d", result);
-                PushIntoStack(stack, resulttochar);
-        }
-	else if(*keyword == '&')
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result = ((left == 1)? true:false) & ((right == 1)? true: false);
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(*keyword == '|')
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result = ((left == 1)? true:false) | ((right == 1)? true: false);
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(*keyword == '!')
-        {
-                int argument = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result = ((argument == 1)? false:true);
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, "<>") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result =  (left!=right);
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, "<=") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result =  left<=right;
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, ">=") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result =  left>=right;
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, "<") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result =  left<right;
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, ">") == 0)
-        {
-                int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
-                bool result =  left>right;
-                PushIntoStack(stack, result?"1":"0");
-        }
-	else if(strcmp(keyword, "rvalue") == 0)
-        {
-		if(FindIfInStack(stack, addressofdata(array, command)))
+		char* keyword = pair->Key_CommandPair[i].keyword;
+		char* command = pair->Key_CommandPair[i].command;
+        	if(strcmp(keyword, "show") == 0)
+        	{
+                	printf("%s\n", command);
+        	}
+		else if(strcmp(keyword, "print") == 0)
 		{
-			int value = find(map, addressofdata(array, command));
-			char charvalue[20];
-			sprintf(charvalue, "%d", value);
-	
-			PushIntoStack(stack, charvalue);
+			char* peek = PeekStack(stack);
+			(peek != NULL)? printf("%s\n", peek): printf("no element in stack to peek\n");
 		}
-		else
+		else if(strcmp(keyword, "pop") == 0)
 		{
-			append(array, command);
-			insert(map, addressofdata(array, command), 0);
-			PushIntoStack(stack, "0");
-		}
-        }
-	else if(strcmp(keyword, "lvalue") == 0)
-	{
-		append(array, command);
- 		insert(map, addressofdata(array, command), 0);
-                PushIntoStack(stack, addressofdata(array, command));
-	}
-	else if(strcmp(keyword, ":=") == 0)
-	{
-		int value = !isEmpty(stack)? atoi(PopStack(stack)):0;
-		char* address = !isEmpty(stack)? PeekStack(stack): NULL;
-		
-		if(find(map, address) != -1)
-		{
-			insert(map, address, value);
 			PopStack(stack);
 		}
-		else
+		else if(strcmp(keyword, "push") == 0)
 		{
-			printf("given l value never encountered...\n");
+			PushIntoStack(stack,command);
 		}
-	}
-	else if(strcmp(keyword, "copy") == 0)
-	{
-		PushIntoStack(stack, PeekStack(stack));
-	}
+		else if(*keyword == '-')
+		{
+			int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+			int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+			int result = left - right;
+			char resulttochar[result];
+			sprintf(resulttochar, "%d", result);
+			PushIntoStack(stack, resulttochar);
+		}
+		else if(*keyword == '+')
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int result = left + right;
+                	char resulttochar[result];
+                	sprintf(resulttochar, "%d", result);
+                	PushIntoStack(stack, resulttochar);
+        	}
+		else if(*keyword == '*')
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int result = left * right;
+                	char resulttochar[result];
+                	sprintf(resulttochar, "%d", result);
+               	 	PushIntoStack(stack, resulttochar);
+       		}	
+		else if(*keyword == '/')
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):1;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int result = left / right;
+                	char resulttochar[result];
+             		sprintf(resulttochar, "%d", result);
+                	PushIntoStack(stack, resulttochar);
+        	}
+		else if(strcmp(keyword, "div") == 0)
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int result = left % right;
+                	char resulttochar[result];
+                	sprintf(resulttochar, "%d", result);
+                	PushIntoStack(stack, resulttochar);
+        	}
+		else if(*keyword == '&')
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+               		int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result = ((left == 1)? true:false) & ((right == 1)? true: false);
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(*keyword == '|')
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+              	 	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result = ((left == 1)? true:false) | ((right == 1)? true: false);
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(*keyword == '!')
+        	{
+                	int argument = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result = ((argument == 1)? false:true);
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, "<>") == 0)
+        	{	
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result =  (left!=right);
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, "<=") == 0)
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+               	 	bool result =  left<=right;
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, ">=") == 0)
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+               	 	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result =  left>=right;
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, "<") == 0)
+        	{	
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result =  left<right;
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, ">") == 0)
+        	{
+                	int right = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	int left  = !isEmpty(stack)? atoi(PopStack(stack)):0;
+                	bool result =  left>right;
+                	PushIntoStack(stack, result?"1":"0");
+        	}
+		else if(strcmp(keyword, "rvalue") == 0)
+        	{	
+			if(FindIfInStack(stack, addressofdata(array, command)))
+			{
+				int value = find(map, addressofdata(array, command));
+				char charvalue[20];
+				sprintf(charvalue, "%d", value);
 	
+				PushIntoStack(stack, charvalue);
+			}
+			else
+			{
+				append(array, command);
+				insert(map, addressofdata(array, command), 0);
+				PushIntoStack(stack, "0");
+			}
+       		 }
+		else if(strcmp(keyword, "lvalue") == 0)
+		{
+			append(array, command);
+	 		insert(map, addressofdata(array, command), 0);
+      	          PushIntoStack(stack, addressofdata(array, command));
+		}
+		else if(strcmp(keyword, ":=") == 0)
+		{
+			int value = !isEmpty(stack)? atoi(PopStack(stack)):0;
+			char* address = !isEmpty(stack)? PeekStack(stack): NULL;
+		
+			if(find(map, address) != -1)
+			{
+				insert(map, address, value);
+				PopStack(stack);
+			}
+			else
+			{
+				printf("given l value never encountered...\n");
+			}
+		}
+		else if(strcmp(keyword, "copy") == 0)
+		{
+			PushIntoStack(stack, PeekStack(stack));
+		}
+	}	
 }
 
 
@@ -225,6 +229,11 @@ void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack,stru
  	char *firstspace;
 	char* keyword;
         char* command;
+
+	struct Pair pair;
+	int linenumber = 0;
+	
+	initializePair(&pair);
 	
 	while (fgets(Eachline, sizeof(Eachline), abminstructionfile) != NULL) 
 	{
@@ -246,8 +255,10 @@ void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack,stru
 			//printf("before space:  %s\n", check);
 		}
 		trimleadtrailspaces(keyword);
-		trimleadtrailspaces(command);	
-		abmkeywordhelper(keyword,command, stack, array, map);		
-	}	
+		trimleadtrailspaces(command);
+		addPair(&pair, linenumber, keyword, command);	
+		linenumber++;	
+	}
+	 abmkeywordhelper(&pair, stack, array, map);
 }
 
