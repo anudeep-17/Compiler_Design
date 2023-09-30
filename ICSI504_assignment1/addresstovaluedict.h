@@ -18,5 +18,7 @@ struct Map
 void initializeMap(struct Map* map);
 void insert(struct Map* map, const char* key, int value);
 int find(struct Map* map, const char* key);
+void printMap(struct Map *map);
+
 #endif
 

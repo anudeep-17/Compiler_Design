@@ -1,0 +1,15 @@
+BasedOnStyle: LLVM
+# Indentation style
+IndentWidth: 4
+UseTab: Always
+# Line length
+ColumnLimit: 100
+SpacesBeforeTrailingComments: 1
+# Break before braces
+BraceWrapping:
+  AfterFunction: true
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+SpaceBeforeAssignmentOperators: true
+SpacesBeforeParens: Always

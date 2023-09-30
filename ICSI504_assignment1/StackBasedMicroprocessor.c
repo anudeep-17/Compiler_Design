@@ -12,12 +12,12 @@ int main()
 
 	struct Stringarray variables;
 	initializeStrings(&variables);
-	
+
 	struct Map variablevaluemap;
 	initializeMap(&variablevaluemap);
-	
-	FILE* abmFile = abmFileReader("abmfiles/operatorsTest.abm");
-	
+
+	FILE* abmFile = abmFileReader("abmfiles/foo.abm");
+
 	abminstructionrunner(abmFile, &stack, &variables, &variablevaluemap);
 	return 0;
 }

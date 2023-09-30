@@ -18,6 +18,6 @@ struct Pair{
 void initializePair(struct Pair* pair);
 void addPair(struct Pair* pair, int linenumber, const char* keyword, const char* command);
 int getlinenumber(struct Pair* pair, const char* keyword, const char* command);
-
+void printPair(struct Pair* pair);
 
 #endif

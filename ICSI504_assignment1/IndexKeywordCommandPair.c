@@ -9,7 +9,7 @@ void initializePair(struct Pair* pair)
 	pair->currentpairsize = 0;
 }
 
-void addPair(struct Pair* pair, int linenumber, const char* keyword, const char* command) 
+void addPair(struct Pair* pair, int linenumber, const char* keyword, const char* command)
 {
     	if (pair->currentpairsize < MaxPairSize)
 	{
@@ -25,18 +25,18 @@ void addPair(struct Pair* pair, int linenumber, const char* keyword, const char*
 			strncpy(pair->Key_CommandPair[index].command, command, sizeof(pair->Key_CommandPair[index].command));
         	}
 		pair->currentpairsize++;
-    	} 
-	else 
+    	}
+	else
 	{
         	printf("Error: Pair is full, cannot add more pairs.\n");
     	}
-	
+
 }
 
 int getlinenumber(struct Pair* pair, const char* keyword, const char* command) {
     	for (int i = 0; i < pair->currentpairsize; i++)
 	{
-        	if (strcmp(pair->Key_CommandPair[i].keyword, keyword) == 0 && strcmp(pair->Key_CommandPair[i].command, command) == 0) 
+        	if (strcmp(pair->Key_CommandPair[i].keyword, keyword) == 0 && strcmp(pair->Key_CommandPair[i].command, command) == 0)
 		{
             		return pair->Key_CommandPair[i].linenumber;
         	}
@@ -44,3 +44,9 @@ int getlinenumber(struct Pair* pair, const char* keyword, const char* command) {
     return -1; // Keyword and command not found
 }
 
+void printPair(struct Pair *pair) {
+    for (int i = 0; i < pair->currentpairsize; i++)
+		{
+			printf("Line Number: %d, Keyword: %s, Command: %s\n",pair->Key_CommandPair[i].linenumber,pair->Key_CommandPair[i].keyword,pair->Key_CommandPair[i].command);
+    }
+}
