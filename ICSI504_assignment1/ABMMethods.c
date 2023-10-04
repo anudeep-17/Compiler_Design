@@ -43,9 +43,8 @@ void trimleadtrailspaces(char *line) {
     }
 }
 
-void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringarray* array,struct Map* map, struct Map* labellocations) {
-    // printf("current command: \"%s\"\n",
-    // command);
+void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringarray* array,struct Map* map, struct Map* labellocations)
+{
 
     struct CharStack lastcontrol;
     initialize(&lastcontrol);
@@ -73,7 +72,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
       else if (strcmp(keyword, "push") == 0)
       {
         PushIntoStack(stack, command);
-
+        PrintStack(stack);
       }
       else if (*keyword == '-')
       {
@@ -178,7 +177,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
       }
       else if (strcmp(keyword, "rvalue") == 0)
       {
-        if (find(map, addressofdata(array, command)) != -1)
+        if (strcmp(addressofdata(array, command), "\0") != 0 && find(map, addressofdata(array, command)) != -1)
         {
       	     int value = find(map, addressofdata(array, command));
       	     char charvalue[20];
@@ -191,7 +190,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
           	insert(map, addressofdata(array, command), 0);
           	PushIntoStack(stack, "0");
         }
-
       }
       else if (strcmp(keyword, "lvalue") == 0)
       {
@@ -251,7 +249,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
         int lastcontrolindex = atoi(PopStack(&lastcontrol));
         i = lastcontrolindex+1;
       }
-
    }
 }
 

@@ -2,7 +2,7 @@
 #ifndef Stack
 #define Stack
 
-#define StackSize 1024
+#define StackSize 100
 
 struct CharStack
 {

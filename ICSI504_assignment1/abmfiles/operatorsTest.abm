@@ -1,7 +1,7 @@
 show  
 show  This code illustrates basic arithmetic
 show  and logical operations.
-show 
+show  
 rvalue var
 show Variables are initialized to "zero"
 show Value of var is:

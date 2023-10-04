@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "Variablearray.h"
 #include <stdbool.h>
 
@@ -31,19 +32,6 @@ void append(struct Stringarray* array, const char* data)
 	}
 }
 
-char* atindex(struct Stringarray* array, int location)
-{
-	if(location>=0 && location < array->currentsize)
-	{
-		return array->data[location];
-	}
-	else
-	{
-		printf("Index Invalid \n");
-		return NULL;
-	}
-}
-
 char* addressofdata(struct Stringarray* array, const char* data)
 {
 	static char address[20];
@@ -56,6 +44,13 @@ char* addressofdata(struct Stringarray* array, const char* data)
 			return address;
 		}
 	}
-	return NULL;
+	return "\0";
 }
 
+void printarray(struct Stringarray* array)
+{
+    for (int i = 0; i < array->currentsize; i++)
+    {
+        printf("Element %d: %s\n", i, array->data[i]);
+    }
+}

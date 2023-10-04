@@ -62,10 +62,10 @@ void PrintStack(struct CharStack* stack)
 	printf("Stack contents: ");
 	for(int i = 0; i<= stack->top; i++)
 	{
-		printf("%s", stack->stackitems[i]);
+		printf("%s, ", stack->stackitems[i]);
 	}
-	printf("\n");
-}	
+	printf(" -- done \n");
+}
 
 bool FindIfInStack(struct CharStack* stack, const char* address)
 {

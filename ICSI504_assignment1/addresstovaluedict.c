@@ -10,16 +10,16 @@ void initializeMap(struct Map* map)
 
 void insert(struct Map* map, const char* key, int value)
 {
-	for(int i = 0; i<Maxsize; i++)
+	for(int i = 0; i<MaxMapsize; i++)
         {
                 if(strcmp(map->Mapitems[i].address, key) == 0)
                 {
                         map->Mapitems[i].value = value;
-			return;
+												return;
                 }
         }
 
-	if(map->currentsize < Maxsize)
+	if(map->currentsize < MaxMapsize)
 	{
 		strcpy(map->Mapitems[map->currentsize].address, key);
 		map->Mapitems[map->currentsize].value = value;
@@ -30,7 +30,7 @@ void insert(struct Map* map, const char* key, int value)
 
 int find(struct Map* map, const char* key)
 {
-	for(int i = 0; i<Maxsize; i++)
+	for(int i = 0; i < MaxMapsize; i++)
 	{
 		if(strcmp(map->Mapitems[i].address, key) == 0)
 		{

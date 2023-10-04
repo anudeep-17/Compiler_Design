@@ -1,17 +1,17 @@
 #ifndef addresstovaluedict
 #define addresstovaluedict
 
-#define Maxsize 1024
+#define MaxMapsize 500
 
 struct addresstoval
 {
-	char address[1024];
+	char address[30];
 	int value;
 };
 
 struct Map
 {
-	struct addresstoval Mapitems[Maxsize];
+	struct addresstoval Mapitems[MaxMapsize];
 	int currentsize;
 };
 
