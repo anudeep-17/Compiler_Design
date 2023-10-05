@@ -111,9 +111,9 @@ void MakeReturnablesAccesible(struct VariableContainer* container, int numofretu
 	int currentindex = container->containernumber;
 	int indextoappendin = container->containernumber - 1;
 
-	for(int i = container->variablenames[currentindex].currentsize; i >= container->variablenames[currentindex].currentsize-numofreturnables; i--)
+	for(int i = container->variablenames[currentindex].currentsize-1; i >= container->variablenames[currentindex].currentsize-numofreturnables; i--)
 	{
-		if(addressofdata(&(container->variablenames[indextoappendin]), container->variablenames[currentindex].data[i]) !=NULL )
+		if(addressofdata(&(container->variablenames[indextoappendin]), container->variablenames[currentindex].data[i]) != NULL )
 		{
 				insert(&(container->variablevalues[indextoappendin]), addressofdata(&(container->variablenames[indextoappendin]), container->variablenames[currentindex].data[i]), find(&(container->variablevalues[currentindex]),addressofdata(&(container->variablenames[currentindex]), container->variablenames[currentindex].data[i])));
 		}

@@ -9,42 +9,13 @@ int main()
 {
 	struct CharStack stack;
 	initialize(&stack);
+
 	struct VariableContainer container;
 	initializeContainer(&container);
 
-	// struct Stringarray variables;
-	// initializeStrings(&variables);
-	//
-	// struct Map variablevaluemap;
-	// initializeMap(&variablevaluemap);
-	//
-	FILE* abmFile = abmFileReader("abmfiles/foo.abm");
+	FILE* abmFile = abmFileReader("abmfiles/recursiveFactorial.abm");
 
 	abminstructionrunner(abmFile, &stack, &container);
 
-
-	// insertIntoContainer(&container, "variables1", 1);
-	// printcontainers(&container);
-	// printf("%d\n", FindInContainer(&container, "variables1"));
-	//
-	//
-	// NewScope(&container);
-	//
-	// insertIntoContainer(&container, "variables1", 3);
-	// printcontainers(&container);
-	// printf("%d\n", FindInContainer(&container, "variables1"));
-	//
-	// NewScope(&container);
-	// insertIntoContainer(&container, "variables1", 3);
-	// insertIntoContainer(&container, "variables2", 3);
-	// printcontainers(&container);
-	// printf("%d\n", FindInContainer(&container, "variables1"));
-	//
-	// DeleteScope(&container);
-	// DeleteScope(&container);
-	//
-	// printf("after deleting scope 1\n");
-	//
-	// printcontainers(&container);
 	return 0;
 }

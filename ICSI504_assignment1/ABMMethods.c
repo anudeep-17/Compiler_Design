@@ -52,6 +52,9 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
     bool Callevoked = false;
     bool Returnedfromcall = false;
 
+    int numberofbegins = 0;
+    int numberofcalls = 0;
+
     struct CharStack lastcontrol;
     initialize(&lastcontrol);
 
@@ -59,8 +62,11 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 
     for (int i = 0; i < pair->currentpairsize; i++)
     {
+
       char *keyword = pair->Key_CommandPair[i].keyword;
       char *command = pair->Key_CommandPair[i].command;
+
+      // printf("%d keyword: %s  command: %s \n",i , keyword, command);
 
       if(strcmp(keyword, "show") == 0)
       {
@@ -185,37 +191,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if (strcmp(keyword, "rvalue") == 0)
       {
-
-        // if((Beginevoked && Callevoked) && FindInAboveScope(container, command) == INT_MIN && FindInContainer(container, command) != INT_MIN)
-        // {
-        // 	     int value = FindInContainer(container, command);
-        // 	     char charvalue[20];
-        //        sprintf(charvalue, "%d", value);
-        // 	     PushIntoStack(stack, charvalue);
-        // }
-        // else if(!Beginevoked && !Callevoked && FindInContainer(container, command) != INT_MIN)
-        // {
-        //
-      	//      int value = FindInContainer(container, command);
-      	//      char charvalue[20];
-        //      sprintf(charvalue, "%d", value);
-      	//      PushIntoStack(stack, charvalue);
-        // }
-        // else if((Beginevoked || Callevoked) && FindInAboveScope(container, command) != INT_MIN)
-        // {
-        //   printf("I am here\n\n\n\n");
-        //   int value = FindInAboveScope(container, command);
-        //   char charvalue[20];
-        //   sprintf(charvalue, "%d", value);
-        //   PushIntoStack(stack, charvalue);
-        // }
-        // else
-        // {
-        //   	insertIntoContainer(container, command, 0);
-        //   	PushIntoStack(stack, "0");
-        // }
-
-        if(Beginevoked && !Callevoked)
+        if((Beginevoked && !Callevoked) || (numberofbegins != numberofcalls))
         {
           if(FindInAboveScope(container, command) != INT_MIN)
           {
@@ -236,11 +212,14 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
             insertIntoContainer(container, command, 0);
           	PushIntoStack(stack, "0");
           }
+
         }
         else
         {
-          if(FindInContainer(container, command) !=INT_MIN)
+
+          if(FindInContainer(container, command) != INT_MIN)
           {
+
             int value = FindInContainer(container, command);
             char charvalue[20];
             sprintf(charvalue, "%d", value);
@@ -251,6 +230,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
             insertIntoContainer(container, command, 0);
           	PushIntoStack(stack, "0");
           }
+
         }
 
       }
@@ -272,7 +252,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         }
 
       }
-
       else if (strcmp(keyword, ":=") == 0)
       {
         int value = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
@@ -297,13 +276,15 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       else if (strcmp(keyword, "label") == 0)
       {
         char key[1024]="";
-        if(find(labellocations,strcat(strcat(strcat(key, keyword), " "), command)) != -1)
+        if(find(labellocations,strcat(strcat(strcat(key, keyword), " "), command)) != INT_MIN)
         {
-          return;
+          // printf("label here : %s  %d\n",command , find(labellocations,key));
+          continue;
         }
         else
         {
           printf("label asked is not in given map, failed \n");
+          return;
         }
 
       }
@@ -318,14 +299,19 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         PushIntoStack(&lastcontrol, numtochar);
 
         Callevoked = true;
-        i = index+1;
-
+        numberofcalls++;
+        // printf("call index %d\n", index);
+        i = index;
       }
       else if(strcmp(keyword, "return") == 0)
       {
         Returnedfromcall = true;
-        Callevoked = false;
-
+        numberofcalls--;
+        if(numberofcalls == 0)
+        {
+            numberofcalls = false;
+        }
+        // PrintStack(&lastcontrol);
         int lastcontrolindex = atoi(PopStack(&lastcontrol));
         i = lastcontrolindex;
       }
@@ -333,32 +319,71 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       {
         Beginevoked = true;
         NewScope(container);
+        numberofbegins++;
       }
       else if(strcmp(keyword, "end") == 0)
       {
         if(returnables > 0)
         {
           MakeReturnablesAccesible(container, returnables);
+          returnables = 0;
         }
         DeleteScope(container);
-        Beginevoked = false;
+        numberofbegins--;
+        if(numberofbegins == 0)
+        {
+            Beginevoked = false;
+        }
+
       }
       else if(strcmp(keyword, "goto") == 0)
       {
         char key[1024]= "";
         strcat(strcat(strcat(key, "label"), " "), command);
         int index = find(labellocations, key);
+        i=index;
 
-        char numtochar[100];
-        sprintf(numtochar, "%d", i);
-        PushIntoStack(&lastcontrol, numtochar);
+      }
+      else if(strcmp(keyword, "gofalse") == 0)
+      {
 
-        i=index+1;
+        char* temp = PopStack(stack);
+        // printf("gofalse for %s\n", temp);
+        if(strcmp(temp, "0") == 0)
+        {
+          char key[1024]= "";
+          strcat(strcat(strcat(key, "label"), " "), command);
+          int index = find(labellocations, key);
+
+          i=index;
+        }
+
+      }
+      else if(strcmp(keyword, "gotrue") == 0)
+      {
+        char* temp = PopStack(stack);
+
+        if(strcmp(temp, "0") != 0)
+        {
+          char key[1024]= "";
+          strcat(strcat(strcat(key, "label"), " "), command);
+          int index = find(labellocations, key);
+
+          i=index;
+        }
+
       }
       else if(strcmp(keyword, "halt") == 0)
       {
         exit(0);
       }
+
+      // printf("\n \n \n");
+      // printcontainers(container);
+      // printf("\n");
+      // PrintStack(stack);
+      // printf("\n\n");
+
    }
 }
 
@@ -404,16 +429,23 @@ void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack, str
 
     	trimleadtrailspaces(keyword);
     	trimleadtrailspaces(command);
-    	addPair(&pair, linenumber, keyword, command);
 
-      if(strcmp(keyword, "label") == 0)
+      if((int)*keyword != 0)
       {
-        char key[1024] = "";
-        strcat(strcat(strcat(key, keyword), " "), command);
-        insert(&labellocations,key,linenumber);
+        // printf("keyword: [%s]  command: %s \n\n", keyword, command);
+        addPair(&pair, linenumber, keyword, command);
+
+        if(strcmp(keyword, "label") == 0)
+        {
+          char key[1024] = "";
+          strcat(strcat(strcat(key, keyword), " "), command);
+          insert(&labellocations,key,linenumber);
+        }
+
+        linenumber++;
+
       }
 
-    	linenumber++;
     }
     // printPair(&pair);
     // printMap(&labellocations);
