@@ -1,21 +1,11 @@
 #include <stdio.h>
-#include "Stack.h"
 #include "ABMReader.h"
 #include "ABMMethods.h"
-#include "addresstovaluedict.h"
 #include "Variablearray.h"
-#include "VariableManager.h"
+//Main FILE thats runs all the abm files given to produce output.
 int main()
 {
-	struct CharStack stack;
-	initialize(&stack);
-
-	struct VariableContainer container;
-	initializeContainer(&container);
-
-	FILE* abmFile = abmFileReader("abmfiles/recursiveFactorial.abm");
-
-	abminstructionrunner(abmFile, &stack, &container);
-
-	return 0;
+		FILE* abmFile = abmFileReader("abmfiles/demo.abm");
+		abminstructionrunner(abmFile);
+	return 0; //just to exit
 }
