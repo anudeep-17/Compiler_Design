@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "addresstovaluedict.h"
 
 void initializeMap(struct Map* map)
@@ -30,14 +31,17 @@ void insert(struct Map* map, const char* key, int value)
 
 int find(struct Map* map, const char* key)
 {
-	for(int i = 0; i < MaxMapsize; i++)
+	if(key != NULL)
 	{
-		if(strcmp(map->Mapitems[i].address, key) == 0)
+		for(int i = 0; i < MaxMapsize; i++)
 		{
-			return map->Mapitems[i].value;
+			if(strcmp(map->Mapitems[i].address, key) == 0)
+			{
+				return map->Mapitems[i].value;
+			}
 		}
 	}
-	return -1;
+	return INT_MIN;
 }
 
 void printMap(struct Map *map)

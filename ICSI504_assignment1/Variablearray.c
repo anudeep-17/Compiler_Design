@@ -44,7 +44,7 @@ char* addressofdata(struct Stringarray* array, const char* data)
 			return address;
 		}
 	}
-	return "\0";
+	return NULL;
 }
 
 void printarray(struct Stringarray* array)

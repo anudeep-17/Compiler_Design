@@ -3,11 +3,13 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "ABMMethods.h"
 #include "IndexKeywordCommandPair.h"
 #include "Stack.h"
 #include "Variablearray.h"
 #include "addresstovaluedict.h"
+#include "VariableManager.h"
 
 
 void trimleadtrailspaces(char *line) {
@@ -43,11 +45,17 @@ void trimleadtrailspaces(char *line) {
     }
 }
 
-void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringarray* array,struct Map* map, struct Map* labellocations)
+void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations)
 {
+
+    bool Beginevoked = false;
+    bool Callevoked = false;
+    bool Returnedfromcall = false;
 
     struct CharStack lastcontrol;
     initialize(&lastcontrol);
+
+    int returnables = 0;
 
     for (int i = 0; i < pair->currentpairsize; i++)
     {
@@ -72,7 +80,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
       else if (strcmp(keyword, "push") == 0)
       {
         PushIntoStack(stack, command);
-        PrintStack(stack);
+        // PrintStack(stack);
       }
       else if (*keyword == '-')
       {
@@ -177,34 +185,102 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
       }
       else if (strcmp(keyword, "rvalue") == 0)
       {
-        if (strcmp(addressofdata(array, command), "\0") != 0 && find(map, addressofdata(array, command)) != -1)
+
+        // if((Beginevoked && Callevoked) && FindInAboveScope(container, command) == INT_MIN && FindInContainer(container, command) != INT_MIN)
+        // {
+        // 	     int value = FindInContainer(container, command);
+        // 	     char charvalue[20];
+        //        sprintf(charvalue, "%d", value);
+        // 	     PushIntoStack(stack, charvalue);
+        // }
+        // else if(!Beginevoked && !Callevoked && FindInContainer(container, command) != INT_MIN)
+        // {
+        //
+      	//      int value = FindInContainer(container, command);
+      	//      char charvalue[20];
+        //      sprintf(charvalue, "%d", value);
+      	//      PushIntoStack(stack, charvalue);
+        // }
+        // else if((Beginevoked || Callevoked) && FindInAboveScope(container, command) != INT_MIN)
+        // {
+        //   printf("I am here\n\n\n\n");
+        //   int value = FindInAboveScope(container, command);
+        //   char charvalue[20];
+        //   sprintf(charvalue, "%d", value);
+        //   PushIntoStack(stack, charvalue);
+        // }
+        // else
+        // {
+        //   	insertIntoContainer(container, command, 0);
+        //   	PushIntoStack(stack, "0");
+        // }
+
+        if(Beginevoked && !Callevoked)
         {
-      	     int value = find(map, addressofdata(array, command));
+          if(FindInAboveScope(container, command) != INT_MIN)
+          {
+             int value = FindInAboveScope(container, command);
       	     char charvalue[20];
              sprintf(charvalue, "%d", value);
       	     PushIntoStack(stack, charvalue);
+          }
+          else if(FindInContainer(container, command) != INT_MIN)
+          {
+            int value = FindInContainer(container, command);
+            char charvalue[20];
+            sprintf(charvalue, "%d", value);
+            PushIntoStack(stack, charvalue);
+          }
+          else
+          {
+            insertIntoContainer(container, command, 0);
+          	PushIntoStack(stack, "0");
+          }
         }
         else
         {
-          	append(array, command);
-          	insert(map, addressofdata(array, command), 0);
+          if(FindInContainer(container, command) !=INT_MIN)
+          {
+            int value = FindInContainer(container, command);
+            char charvalue[20];
+            sprintf(charvalue, "%d", value);
+            PushIntoStack(stack, charvalue);
+          }
+          else
+          {
+            insertIntoContainer(container, command, 0);
           	PushIntoStack(stack, "0");
+          }
         }
+
       }
       else if (strcmp(keyword, "lvalue") == 0)
       {
-        append(array, command);
-        insert(map, addressofdata(array, command), 0);
-        PushIntoStack(stack, addressofdata(array, command));
+        if (FindInContainer(container, command) != INT_MIN)
+        {
+            PushIntoStack(stack, getaddressfromContainer(container, command));
+        }
+        else
+        {
+          insertIntoContainer(container, command, 0);
+          PushIntoStack(stack, getaddressfromContainer(container, command));
+        }
+
+        if(Returnedfromcall == true && Beginevoked == true)
+        {
+          returnables++;
+        }
+
       }
+
       else if (strcmp(keyword, ":=") == 0)
       {
         int value = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
         char *address = !isEmpty(stack) ? PeekStack(stack) : NULL;
 
-        if (find(map, address) != -1)
+        if (FindInContainerbyaddress(container, address) != -1)
         {
-        	insert(map, address, value);
+          updateContainerbyaddress(container, address, value);
         	PopStack(stack);
         }
         else
@@ -241,18 +317,52 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Stringa
         sprintf(numtochar, "%d", i);
         PushIntoStack(&lastcontrol, numtochar);
 
+        Callevoked = true;
         i = index+1;
 
       }
       else if(strcmp(keyword, "return") == 0)
       {
+        Returnedfromcall = true;
+        Callevoked = false;
+
         int lastcontrolindex = atoi(PopStack(&lastcontrol));
-        i = lastcontrolindex+1;
+        i = lastcontrolindex;
+      }
+      else if(strcmp(keyword, "begin") == 0)
+      {
+        Beginevoked = true;
+        NewScope(container);
+      }
+      else if(strcmp(keyword, "end") == 0)
+      {
+        if(returnables > 0)
+        {
+          MakeReturnablesAccesible(container, returnables);
+        }
+        DeleteScope(container);
+        Beginevoked = false;
+      }
+      else if(strcmp(keyword, "goto") == 0)
+      {
+        char key[1024]= "";
+        strcat(strcat(strcat(key, "label"), " "), command);
+        int index = find(labellocations, key);
+
+        char numtochar[100];
+        sprintf(numtochar, "%d", i);
+        PushIntoStack(&lastcontrol, numtochar);
+
+        i=index+1;
+      }
+      else if(strcmp(keyword, "halt") == 0)
+      {
+        exit(0);
       }
    }
 }
 
-void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack, struct Stringarray* array, struct Map* map)
+void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack, struct VariableContainer* container)
 {
 
     if (abminstructionfile == NULL)
@@ -307,5 +417,5 @@ void abminstructionrunner(FILE* abminstructionfile, struct CharStack* stack, str
     }
     // printPair(&pair);
     // printMap(&labellocations);
-    abmkeywordhelper(&pair, stack, array, map, &labellocations);
+    abmkeywordhelper(&pair, stack, container, &labellocations);
 }

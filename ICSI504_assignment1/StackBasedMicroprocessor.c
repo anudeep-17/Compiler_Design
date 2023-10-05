@@ -7,31 +7,40 @@
 #include "VariableManager.h"
 int main()
 {
-	// struct CharStack stack;
-	// initialize(&stack);
-	//
+	struct CharStack stack;
+	initialize(&stack);
+	struct VariableContainer container;
+	initializeContainer(&container);
+
 	// struct Stringarray variables;
 	// initializeStrings(&variables);
 	//
 	// struct Map variablevaluemap;
 	// initializeMap(&variablevaluemap);
 	//
-	// FILE* abmFile = abmFileReader("abmfiles/foo.abm");
-	//
-	// abminstructionrunner(abmFile, &stack, &variables, &variablevaluemap);
+	FILE* abmFile = abmFileReader("abmfiles/foo.abm");
 
-	// struct VariableContainer container;
-	// initializeContainer(&container);
+	abminstructionrunner(abmFile, &stack, &container);
+
+
 	// insertIntoContainer(&container, "variables1", 1);
-	// printf("%d\n", FindInContainer(&container, "variables1"));
 	// printcontainers(&container);
+	// printf("%d\n", FindInContainer(&container, "variables1"));
+	//
 	//
 	// NewScope(&container);
 	//
 	// insertIntoContainer(&container, "variables1", 3);
-	// printf("%d\n", FindInContainer(&container, "variables1"));
 	// printcontainers(&container);
+	// printf("%d\n", FindInContainer(&container, "variables1"));
 	//
+	// NewScope(&container);
+	// insertIntoContainer(&container, "variables1", 3);
+	// insertIntoContainer(&container, "variables2", 3);
+	// printcontainers(&container);
+	// printf("%d\n", FindInContainer(&container, "variables1"));
+	//
+	// DeleteScope(&container);
 	// DeleteScope(&container);
 	//
 	// printf("after deleting scope 1\n");
