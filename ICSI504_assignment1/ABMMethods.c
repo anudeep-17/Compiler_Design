@@ -431,10 +431,9 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, "halt") == 0) // halt -> exit the excecution
       {
-        // exit(0); //safe exit.
+        exit(0); //safe exit.
         return;
       }
-
    }
 }
 
