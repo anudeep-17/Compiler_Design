@@ -4,6 +4,9 @@
 #include <limits.h>
 #include "addresstovaluedict.h"
 
+/*
+Map: a basic key to value map
+*/
 //initialzes the map by making its size 0
 void initializeMap(struct Map* map)
 {
