@@ -13,23 +13,23 @@ struct VariableContainer
 	struct Map variablevalues[Maxarraysize];
 };
 
+//method declarations
+//---------------------------------INITIALIZING METHODs----------------------------------------------------
 void initializeContainer(struct VariableContainer* container);
-
+//---------------------------------INSERT METHODs----------------------------------------------------
 void insertIntoContainer(struct VariableContainer* container, const char* variablename, int variablevalue);
-
+void updateContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue);
+//---------------------------------FIND METHODs----------------------------------------------------
 int FindInContainer(struct VariableContainer* container, const char* variablename);
 int FindInContainerbyaddress(struct VariableContainer* container, const char* variableaddress);
 int FindInAboveScope(struct VariableContainer* container, const char* variablename);
-
+//---------------------------------ADDRESS GETTER METHODs----------------------------------------------------
 char* getaddressfromContainer(struct VariableContainer* container, const char* variablename);
-
-void updateContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue);
-
-void printcontainers(struct VariableContainer* container);
+//---------------------------------SCOPE HANDLING METHODs----------------------------------------------------
 void NewScope(struct VariableContainer* container);
 void DeleteScope(struct VariableContainer* container);
-
-void OnReturnMakeAccesible(struct VariableContainer* container);
+//---------------------------------RETURN HANDLING METHODs----------------------------------------------------
 void MakeReturnablesAccesible(struct VariableContainer* container, int numofreturnables);
-
+//---------------------------------TEST METHODs----------------------------------------------------
+void printcontainers(struct VariableContainer* container);
 #endif

@@ -1,8 +1,9 @@
+//header file of stack
 #include <stdbool.h>
 #ifndef Stack
 #define Stack
 
-#define StackSize 100
+#define StackSize 100 //Max stack elements
 
 struct CharStack
 {
@@ -10,6 +11,7 @@ struct CharStack
         char* stackitems[StackSize];
 };
 
+//Methods declarations
 void initialize(struct CharStack* stack);
 int isEmpty(struct CharStack* stack);
 int IsFull(struct CharStack* stack);

@@ -1,7 +1,8 @@
+//header of a 2d array Variablearray.c
 #ifndef Variablearray
 #define Variablearray
 
-#define Maxsize 500
+#define Maxsize 500 //Max size of a 2d array
 
 struct Stringarray{
 	char data[Maxsize][30];
