@@ -1,0 +1,12 @@
+.data
+arr: .word 8, 9, 3, 4, 7, 2, 5, 6, 1
+msg: .asciiz "result: "
+
+.text
+
+# Define the main entry point
+.globl main
+       main:
+    	la $a0, msg
+    	li $v0, 4
+    	# Other instructions for your main program
