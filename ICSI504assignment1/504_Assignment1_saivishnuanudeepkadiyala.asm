@@ -12,23 +12,41 @@ arr_end:
 
 	# int main() method work
 	main: 
+		sub $sp, $sp, 8 #for saving registers
 		la $t0, arr
-
+		sw $t0, 0($sp) #for arr saving
+		
 		#calc of length: 
-    	la $t1, arr_end
-    	sub $t1, $t1, $t0
-    	li $t2, 4
-    	div $t1, $t1, $t2
+    	la $t1, arr_end #t1 = arr_end	
+    	sub $t1, $t1, $t0 #t1 = arr_end - arr
+    	li $t2, 4 #t2 = 4
+    	div $t1, $t1, $t2 #t1 = (arr_end - arr)/4
+		sw $t1, 4($sp) #for size
 
 		#parameter preparation	
-    	move $a0, $t0
+    	move $a0, $t0 
 		move $a1, $t1
+		
 		jal radixsort
+		
+		# parameter preparation
+		lw $t0, 0($sp) #for arr
+		lw $t1, 4($sp) #for size
+		move $a0, $t0 
+		move $a1, $zero 
+		move $a2, $t1
+
+		jal printData
+
+		jal return_formain
+	
+	return_formain:
+		add $sp, $sp, 8 #deallocation of stack
 		
 		# Exit call
     	li $v0, 10
     	syscall
-	
+		
 	#void radixSort(int arr[], int n)
 	radixsort: 	
 		sub $sp, $sp, 24 #for saving registers
@@ -45,7 +63,7 @@ arr_end:
 		sw $v0, 12($sp) #max value
 
 		# #loop variables
-		li $t3, 1 # i = 1
+		li $t3, 1 # exp = 1
 		sw $t3, 16($sp) #loop variable
 		
 		radixSortloop:
@@ -58,13 +76,11 @@ arr_end:
 			# we call callsort
 			lw $t0, 4($sp) #arr
 			lw $t1, 8($sp) #size
+
 			move $a0, $t0 #passing arr
 			move $a1, $t1 #passing size
 			move $a2, $t3 #passing exp
 			jal countSort #call countSort
-
-			move $t5, $v0 #sorted array	
-			sw $t5, 20($sp) #sorted array
 
 			lw $t3, 16($sp) #loop variable
 			#increment loop variable
@@ -75,10 +91,7 @@ arr_end:
 			j radixSortloop #loop again
 
 		endloop_radixsort:
-			lw $t0, 20($sp) #sorted array
-			move $v0, $t0 #return statement
 			lw $ra, ($sp) #for address where it came from
-
 			add $sp, $sp, 24 #deallocation of stack
 			jr $ra #return to main
 
@@ -88,6 +101,8 @@ arr_end:
 		sw $a0, 0($sp) #arr
 		sw $a1, 4($sp) #for size
 		sw $a2, 8($sp) #for exp
+
+		
 
 		#create output[size]
 		lw $t0, 4($sp) #size
@@ -137,15 +152,18 @@ arr_end:
 			lw $t6, 0($t5) #count[arr[i]/exp % 10]
 			addi $t6, $t6, 1 #count[arr[i]/exp % 10]++
 			sw $t6, 0($t5) #count[arr[i]/exp % 10] = count[arr[i]/exp % 10]++
-			
 			addi $t1, $t1, 4 #arr++
 			addi $t0, $t0, 1 #i++
 			bne $t0, $t2, loop1 #i != size then loop again
-		
+
+		la $a0, nextline
+			li $v0, 4
+			syscall
 		#loop 2
 		li $t0, 1 #i = 1
 		lw $t1, 16($sp) #count
 		li $t2, 10 #count size
+
 		addi $t1, $t1, 4
 		loop2: 
 			lw $t3, 0($t1) #count[i]
@@ -157,7 +175,7 @@ arr_end:
 			addi $t0, $t0, 1 #i++
 			addi $t1, $t1, 4 #count++
 			bne $t0, $t2, loop2 #i != 10 then loop again
-		
+			
 		#loop 3 work 
 		lw $t0, 4($sp) #size
 		sub $t0, $t0, 1 #size--
@@ -165,6 +183,10 @@ arr_end:
 		lw $t2, 8($sp) #exp
 		lw $t3, 12($sp) #output
 		lw $t4, 16($sp) #count
+
+		mul $t5, $t0, 4 #size * 4
+		add $t1, $t1, $t5 #arr + size * 4
+
 		loop3:
 			lw $t5, 0($t1) #arr[i]
 			div $t5, $t2 #arr[i]/exp
@@ -173,27 +195,22 @@ arr_end:
 			div $t6, $t5 #arr[i]/exp/10
 			#arr[i]/exp % 10
 			mfhi $t6 #arr[i]/exp % 10
-			
-			sll $t7, $t6, 2 #arr[i]/exp % 10* 4
-			add $t7, $t7, $t4 #arr[i]/exp % 10 * 4 + count
-			lw $t8, 0($t7) #count[arr[i]/exp % 10--]
-			sub $t8, $t8, 1 #count[arr[i]/exp % 10--]--
-			sll $t8, $t8, 2 #count[arr[i]/exp % 10--]-- * 4
-			add $t8, $t8, $t3 #count[arr[i]/exp % 10--]-- * 4 + output
+			#count[arr[i]/exp % 10]
+			sll $t5, $t6, 2 #arr[i]/exp % 10 * 4
+			add $t5, $t5, $t4 #arr[i]/exp % 10 * 4 + count
+			lw $t6, 0($t5) #count[arr[i]/exp % 10]
+			sub $t6, $t6, 1 #count[arr[i]/exp % 10]--
+			sw $t6, 0($t5) #count[arr[i]/exp % 10] = count[arr[i]/exp % 10]--
+			sll $t6, $t6, 2 #count[arr[i]/exp % 10] * 4
+			add $t6, $t6, $t3 #count[arr[i]/exp % 10] * 4 + output
 			
 			lw $t5, 0($t1) #arr[i]
-			sw $t5, 0($t8) #output[count[arr[i]/exp % 10--]--] = arr[i]
+			sw $t5, 0($t6) #output[count[arr[i]/exp % 10]] = arr[i]
+			
+			sub $t1, $t1, 4 #arr--
+			sub $t0, $t0, 1 #size--
+			bge $t0, $zero, loop3 #size >= 0 then loop again
 
-			sll $t6, $t6, 2 #arr[i]/exp % 10 * 4
-			add $t6, $t6, $t4 #arr[i]/exp % 10 * 4 + count
-			lw $t7, 0($t6) #count[arr[i]/exp % 10]
-			sub $t7, $t7, 1 #count[arr[i]/exp % 10]--
-			sw $t7, 0($t6) #count[arr[i]/exp % 10] = count[arr[i]/exp % 10]--
-
-			addi $t1, $t1, 4 #arr++
-			addi $t0, $t0, -1 #size--
-			bgez $t0, loop3 #size >= 0 then loop again
-		
 		#loop 4 work
 		li $t0 , 0 #i = 0
 		lw $t1, 0($sp) #arr
@@ -208,8 +225,6 @@ arr_end:
 			bne $t0, $t2, loop4 #i != size then loop again 
 
 		#deallocation of stack
-		lw $t0, 0($sp) #arr
-		move $v0, $t0 #return statement
 		add $sp, $sp, 20
 		jr $ra
 
@@ -241,9 +256,8 @@ arr_end:
 
 	#void printData(int arr[], int start, int len)
 	printData: 
-
 		move $t0, $a0
-		beq $a1, $a2 , return_fromprint
+		bge $a1, $a2 , return_fromprint
 		
 		#print the element here.
 		lw $a0, 0($t0) 
@@ -255,11 +269,20 @@ arr_end:
 		li $v0, 4
 		syscall
 		
-		addi $a1, $a1, 1
 		addi $t0, $t0, 4  
-		
 		move $a0, $t0
+		
+		beq $a1, $zero, store_return_address
+		
+		addi $a1, $a1, 1
 		jal printData
+
+		store_return_address:
+			sub $sp, $sp, 4
+			sw $ra, 0($sp)
+			addi $a1, $a1, 1
+			jal printData 
 		
 	return_fromprint: 
+		lw $ra, 0($sp)
 		jr $ra
