@@ -11,43 +11,48 @@ arr_end:
 .globl main 
 
 	# int main() method work
+	# parameter: arr with values to sort
+	# return: void
 	main: 
-		sub $sp, $sp, 8 #for saving registers
+		sub $sp, $sp, 8 #for saving arr address and its length
 		la $t0, arr
 		sw $t0, 0($sp) #for arr saving
 		
 		#calc of length: 
+
     	la $t1, arr_end #t1 = arr_end	
-    	sub $t1, $t1, $t0 #t1 = arr_end - arr
+    	sub $t1, $t1, $t0 #t1 = arr_end - arr -> (size of array)
     	li $t2, 4 #t2 = 4
-    	div $t1, $t1, $t2 #t1 = (arr_end - arr)/4
-		sw $t1, 4($sp) #for size
+    	div $t1, $t1, $t2 #t1 = (arr_end - arr)/4 -> (size of array)/(size of array[0])
+		sw $t1, 4($sp) #saving size
 		
 		#parameter preparation	
-    	move $a0, $t0 
-		move $a1, $t1
+    	move $a0, $t0 #passing arr 
+		move $a1, $t1 #passing size
 		
 		jal radixsort
 		
 		# parameter preparation
 		lw $t0, 0($sp) #for arr
 		lw $t1, 4($sp) #for size
-		move $a0, $t0 
-		move $a1, $zero 
-		move $a2, $t1
+		move $a0, $t0 #passing arr 
+		move $a1, $zero  #passing start
+		move $a2, $t1 #passing size
 
-		jal printData
+		jal printData 
 
-		jal return_formain
+		jal return_formain 	
 	
+	# return (0) from main
 	return_formain:
 		add $sp, $sp, 8 #deallocation of stack
-		
 		# Exit call
     	li $v0, 10
     	syscall
 		
 	#void radixSort(int arr[], int n)
+	#parameter: arr with values to sort, size of array, exp
+	#return: void
 	radixsort: 	
 		sub $sp, $sp, 24 #for saving registers
 		sw $ra, 0($sp) #for address where it came from
@@ -62,7 +67,7 @@ arr_end:
 		#this is the max value in the array
 		sw $v0, 12($sp) #max value
 
-		# #loop variables
+		#loop variables
 		li $t3, 1 # exp = 1
 		sw $t3, 16($sp) #loop variable
 		
@@ -96,13 +101,13 @@ arr_end:
 			jr $ra #return to main
 
 	#void countSort(int arr[], int n, int exp)
+	#parameter: arr with values to sort, size of array, exp
+	#return: void
 	countSort:
 		sub $sp, $sp, 20 #for saving registers
 		sw $a0, 0($sp) #arr
 		sw $a1, 4($sp) #for size
 		sw $a2, 8($sp) #for exp
-
-		
 
 		#create output[size]
 		lw $t0, 4($sp) #size
@@ -115,7 +120,7 @@ arr_end:
 		#loop variable i 
 		li $t0, 0 #i = 0
 		
-		#count[10]
+		# creation of count[10]
 		li $t1, 10 #count size
 		li $v0, 9 #sbrk
 		mul $t1, $t1, 4 #count size * 4
@@ -146,7 +151,6 @@ arr_end:
 			div $t6, $t5 #arr[i]/exp/10
 			#arr[i]/exp % 10
 			mfhi $t6 #arr[i]/exp % 10
-			#count[arr[i]/exp % 10]++
 			sll $t5, $t6, 2 #arr[i]/exp % 10 * 4
 			add $t5, $t5, $t4 #arr[i]/exp % 10 * 4 + count
 			lw $t6, 0($t5) #count[arr[i]/exp % 10]
@@ -156,9 +160,6 @@ arr_end:
 			addi $t0, $t0, 1 #i++
 			bne $t0, $t2, loop1 #i != size then loop again
 
-		la $a0, nextline
-			li $v0, 4
-			syscall
 		#loop 2
 		li $t0, 1 #i = 1
 		lw $t1, 16($sp) #count
@@ -193,9 +194,7 @@ arr_end:
 			mflo $t6 #arr[i]/exp
 			li $t5, 10
 			div $t6, $t5 #arr[i]/exp/10
-			#arr[i]/exp % 10
 			mfhi $t6 #arr[i]/exp % 10
-			#count[arr[i]/exp % 10]
 			sll $t5, $t6, 2 #arr[i]/exp % 10 * 4
 			add $t5, $t5, $t4 #arr[i]/exp % 10 * 4 + count
 			lw $t6, 0($t5) #count[arr[i]/exp % 10]
@@ -224,44 +223,48 @@ arr_end:
 			addi $t3, $t3, 4 #output++
 			bne $t0, $t2, loop4 #i != size then loop again 
 
-		#deallocation of stack
-		add $sp, $sp, 20
-		jr $ra
+		#deallocation of stack values 
+		add $sp, $sp, 20 
+		jr $ra #return to radixsort
 
 	#int getMax(int arr[], int n)
+	#parameter: arr with values to sort, size of array
+	#return: max value in the array
 	getMax:
-		move $t0, $a0
-		lw $t1, 0($t0)
-		li $t2, 1
-		move $t3, $a1
-		# subu $t3,$t3, 1
-		
-		getMaxloop:
-			beq $t2, $t3, endloop
-			
-			addi $t0, $t0, 4			
-			lw $t4, 0($t0)
-			
-			bgt $t4, $t1, greaterfound
+		move $t0, $a0 # stores arr address
+		lw $t1, 0($t0) # stores first element of arr
+		li $t2, 1 # stores loop variable
+		move $t3, $a1 # stores size of arr
 
-			addi $t2,$t2,1
-			j getMaxloop
+		getMaxloop: 
+			beq $t2, $t3, endloop # if loop variable == size then end loop
+			
+			addi $t0, $t0, 4 # increment arr address		 
+			lw $t4, 0($t0) # stores arr[i]
+			
+ 			bgt $t4, $t1, greaterfound # if arr[i] > max then go to greaterfound
+
+			addi $t2,$t2,1 # increment loop variable
+			j getMaxloop # loop again
 		greaterfound: 
-			move $t1, $t4
-			addi $t2, $t2, 1
-			j getMaxloop 
+			move $t1, $t4 # max = arr[i]
+			addi $t2, $t2, 1 # increment loop variable
+			j getMaxloop  
 		endloop:
-			move $v0, $t1
-			jr $ra
+			move $v0, $t1 # return max
+			jr $ra # return to radixsort
 
 	#void printData(int arr[], int start, int len)
+	#parameter: arr with values to sort, start of array, length of array
+	#return: void
+
 	printData: 
-		move $t0, $a0
-		bge $a1, $a2 , return_fromprint
+		move $t0, $a0 # passed arr address 
+		bge $a1, $a2 , return_fromprint # if start >= len then return to radixsort
 		
 		#print the element here.
 		lw $a0, 0($t0) 
-		li $v0, 1
+		li $v0, 1 #
 		syscall
 		
 		#for new line after number 
@@ -269,20 +272,21 @@ arr_end:
 		li $v0, 4
 		syscall
 		
-		addi $t0, $t0, 4  
-		move $a0, $t0
+		addi $t0, $t0, 4  # increment arr address
+		move $a0, $t0 # pass arr address
 		
-		beq $a1, $zero, store_return_address
+		beq $a1, $zero, store_return_address # if start == 0 then store return address
 		
 		addi $a1, $a1, 1
 		jal printData
 
 		store_return_address:
-			sub $sp, $sp, 4
-			sw $ra, 0($sp)
-			addi $a1, $a1, 1
-			jal printData 
+		# if the start is zero then we store where did we come from to make sure when we return we jump back right
+			sub $sp, $sp, 4 #for saving return address
+			sw $ra, 0($sp) #for return address
+			addi $a1, $a1, 1 # increment start
+			jal printData  # call printData
 		
 	return_fromprint: 
-		lw $ra, 0($sp)
-		jr $ra
+		lw $ra, 0($sp) #for return address
+		jr $ra 	# return
