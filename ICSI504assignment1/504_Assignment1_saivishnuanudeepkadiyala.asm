@@ -12,23 +12,42 @@ arr_end:
 
 	# int main() method work
 	main: 
+		sub $sp, $sp, 8 #for saving registers
 		la $t0, arr
-
+		sw $t0, 0($sp) #for arr saving
+		
 		#calc of length: 
-    	la $t1, arr_end
-    	sub $t1, $t1, $t0
-    	li $t2, 4
-    	div $t1, $t1, $t2
+    	la $t1, arr_end #t1 = arr_end	
+    	sub $t1, $t1, $t0 #t1 = arr_end - arr
+    	li $t2, 4 #t2 = 4
+    	div $t1, $t1, $t2 #t1 = (arr_end - arr)/4
 
+		sw $t1, 4($sp) #for size
+		
 		#parameter preparation	
-    	move $a0, $t0
+    	move $a0, $t0 
 		move $a1, $t1
+		
 		jal radixsort
+		
+		# parameter preparation
+		lw $t0, 0($sp) #for arr
+		lw $t1, 4($sp) #for size
+		move $a0, $t0 
+		move $a1, $zero 
+		move $a2, $t1
+
+		jal printData
+
+		jal return_formain
+	
+	return_formain:
+		add $sp, $sp, 8 #deallocation of stack
 		
 		# Exit call
     	li $v0, 10
     	syscall
-	
+		
 	#void radixSort(int arr[], int n)
 	radixsort: 	
 		sub $sp, $sp, 24 #for saving registers
@@ -63,9 +82,6 @@ arr_end:
 			move $a2, $t3 #passing exp
 			jal countSort #call countSort
 
-			move $t5, $v0 #sorted array	
-			sw $t5, 20($sp) #sorted array
-
 			lw $t3, 16($sp) #loop variable
 			#increment loop variable
 			li $t4, 10 #loop increment
@@ -75,10 +91,7 @@ arr_end:
 			j radixSortloop #loop again
 
 		endloop_radixsort:
-			lw $t0, 20($sp) #sorted array
-			move $v0, $t0 #return statement
 			lw $ra, ($sp) #for address where it came from
-
 			add $sp, $sp, 24 #deallocation of stack
 			jr $ra #return to main
 
@@ -208,8 +221,6 @@ arr_end:
 			bne $t0, $t2, loop4 #i != size then loop again 
 
 		#deallocation of stack
-		lw $t0, 0($sp) #arr
-		move $v0, $t0 #return statement
 		add $sp, $sp, 20
 		jr $ra
 
@@ -241,9 +252,8 @@ arr_end:
 
 	#void printData(int arr[], int start, int len)
 	printData: 
-
 		move $t0, $a0
-		beq $a1, $a2 , return_fromprint
+		bge $a1, $a2 , return_fromprint
 		
 		#print the element here.
 		lw $a0, 0($t0) 
@@ -255,11 +265,20 @@ arr_end:
 		li $v0, 4
 		syscall
 		
-		addi $a1, $a1, 1
 		addi $t0, $t0, 4  
-		
 		move $a0, $t0
+		
+		beq $a1, $zero, store_return_address
+		
+		addi $a1, $a1, 1
 		jal printData
+
+		store_return_address:
+			sub $sp, $sp, 4
+			sw $ra, 0($sp)
+			addi $a1, $a1, 1
+			jal printData 
 		
 	return_fromprint: 
+		lw $ra, 0($sp)
 		jr $ra
