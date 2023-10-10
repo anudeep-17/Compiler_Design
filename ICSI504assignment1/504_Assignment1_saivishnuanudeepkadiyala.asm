@@ -21,11 +21,6 @@ arr_end:
     	sub $t1, $t1, $t0 #t1 = arr_end - arr
     	li $t2, 4 #t2 = 4
     	div $t1, $t1, $t2 #t1 = (arr_end - arr)/4
-<<<<<<< HEAD
-		sw $t1, 4($sp) #for size
-=======
->>>>>>> 56b22d772b35f2b085e8dcf5cdf53a81e5694398
-
 		sw $t1, 4($sp) #for size
 		
 		#parameter preparation	
