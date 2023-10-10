@@ -16,103 +16,203 @@ arr_end:
 
 		#calc of length: 
     	la $t1, arr_end
-    	subu $t1, $t1, $t0
+    	sub $t1, $t1, $t0
     	li $t2, 4
-    	divu $t1, $t1, $t2
+    	div $t1, $t1, $t2
 
 		#parameter preparation	
     	move $a0, $t0
 		move $a1, $t1
-    		
-		jal getMax
-		move $a0, $v0
-		li $v0, 1
-		syscall
-    	
+		jal radixsort
+		
 		# Exit call
     	li $v0, 10
     	syscall
 	
 	#void radixSort(int arr[], int n)
 	radixsort: 	
-		move $t0, $a0
-		move $t1, $a1
+		sub $sp, $sp, 24 #for saving registers
+		sw $ra, 0($sp) #for address where it came from
+		sw $a0, 4($sp) #for arr
+		sw $a1, 8($sp) #for size
+		
+		#we call getMax
+		lw $a0, 4($sp) #passing arr
+		lw $a1, 8($sp) #passing size
 		jal getMax
 
 		#this is the max value in the array
-		move $t2, $v0
-		
-		#loop variables
-		li $t3, 1
+		sw $v0, 12($sp) #max value
 
+		# #loop variables
+		li $t3, 1 # i = 1
+		sw $t3, 16($sp) #loop variable
+		
 		radixSortloop:
-			divu $t4, $t2, $t3
-			beq $t4, 0, endloop_radixsort
+			lw $t3, 16($sp) #loop variable
+			lw $t2, 12($sp) #max value
+			div $t2, $t3 # max/exp
+			mflo $t4 # max/exp
+			beq $t4, $zero, endloop_radixsort #is equal to 0 then we are done
 			
 			# we call callsort
-			move $a0, $t0
-			move $a1, $t1
-			move $a2, $t3
-			jal countSort
-			
+			lw $t0, 4($sp) #arr
+			lw $t1, 8($sp) #size
+			move $a0, $t0 #passing arr
+			move $a1, $t1 #passing size
+			move $a2, $t3 #passing exp
+			jal countSort #call countSort
+
+			move $t5, $v0 #sorted array	
+			sw $t5, 20($sp) #sorted array
+
+			lw $t3, 16($sp) #loop variable
 			#increment loop variable
-			mul $t3, $t3, 10
-			j radixSortloop
+			li $t4, 10 #loop increment
+			mul $t3, $t3, $t4 # exp = exp * 10
+			sw $t3, 16($sp) #loop variable = exp
+
+			j radixSortloop #loop again
 
 		endloop_radixsort:
-			jr $ra
+			lw $t0, 20($sp) #sorted array
+			move $v0, $t0 #return statement
+			lw $ra, ($sp) #for address where it came from
+
+			add $sp, $sp, 24 #deallocation of stack
+			jr $ra #return to main
 
 	#void countSort(int arr[], int n, int exp)
 	countSort:
-		move $t0, $a0
-		move $t1, $a1
-		move $t2, $a2
+		sub $sp, $sp, 20 #for saving registers
+		sw $a0, 0($sp) #arr
+		sw $a1, 4($sp) #for size
+		sw $a2, 8($sp) #for exp
 
-		#we create a new array output[n]
-		li $v0, 9
-		mul $a0, $t1, 4 #passing size in bytes  
+		#create output[size]
+		lw $t0, 4($sp) #size
+		li $v0, 9 #sbrk
+		mul $t0, $t0, 4 #size * 4
+		move $a0, $t0 #size of output
 		syscall
-		#address of new memory is in $v0
-		move $t3, $v0
+		sw $v0, 12($sp) #output
 
-		li $t4, 0 #loop variable
+		#loop variable i 
+		li $t0, 0 #i = 0
+		
 		#count[10]
-		li $v0, 9
-		li $t5, 4
-		li $t6, 10
-		mul $a0, $t5, $t6 #passing size in bytes
+		li $t1, 10 #count size
+		li $v0, 9 #sbrk
+		mul $t1, $t1, 4 #count size * 4
+		move $a0, $t1 #size of count
 		syscall
+		sw $v0, 16($sp) #count
 
-		#address of new memory is in $v0
-		move $t5, $v0
-
-		#temp to fill count[n]
+		#count[10] to 0
+		lw $t1, 16($sp) #count
+		li $t2, 0 #count = 0
 		initialloop:
-			sw $zero, 0($t5)
-			addi $t5, $t5, 4
-			addi $t4, $t4, -1
-			bnez $t6, initialloop
-		
+			li $t3, 0
+			sw $t3, 0($t1) #count[i] = 0
+			addi $t1, $t1, 4 #count++
+			addi $t2, $t2, 1 #i++
+			bne $t2, 10, initialloop #i != 10 then loop again
+
+		#loop 1 work
+		lw $t1, 0($sp) #arr
+		lw $t2, 4($sp) #size
+		lw $t3, 8($sp) #exp
+		lw $t4, 16($sp) #count
 		loop1:
-			lw $t6, 0($t0) #load element from arr
-			divu $t6, $t6, $t2 #div it with exp
-			div $t6, $t6, 10 #mod it with 10
-			mfhi $t6 #store the result in t6
+			lw $t5, 0($t1) #arr[i]
+			div $t5, $t3 #arr[i]/exp
+			mflo $t6 #arr[i]/exp
+			li $t5, 10
+			div $t6, $t5 #arr[i]/exp/10
+			#arr[i]/exp % 10
+			mfhi $t6 #arr[i]/exp % 10
+			#count[arr[i]/exp % 10]++
+			sll $t5, $t6, 2 #arr[i]/exp % 10 * 4
+			add $t5, $t5, $t4 #arr[i]/exp % 10 * 4 + count
+			lw $t6, 0($t5) #count[arr[i]/exp % 10]
+			addi $t6, $t6, 1 #count[arr[i]/exp % 10]++
+			sw $t6, 0($t5) #count[arr[i]/exp % 10] = count[arr[i]/exp % 10]++
 			
-			add $t7, $t6, $t5 #add t6 with t5 to get the address of count
+			addi $t1, $t1, 4 #arr++
+			addi $t0, $t0, 1 #i++
+			bne $t0, $t2, loop1 #i != size then loop again
+		
+		#loop 2
+		li $t0, 1 #i = 1
+		lw $t1, 16($sp) #count
+		li $t2, 10 #count size
+		addi $t1, $t1, 4
+		loop2: 
+			lw $t3, 0($t1) #count[i]
+			sub $t1, $t1, 4 #count[i-1]
+			lw $t4, 0($t1) #count[i-1]
+			add $t4, $t4, $t3 #count[i-1] + count[i]
+			addi $t1, $t1, 4 #count[i]
+			sw $t4, 0($t1) #count[i] = count[i-1] + count[i]
+			addi $t0, $t0, 1 #i++
+			addi $t1, $t1, 4 #count++
+			bne $t0, $t2, loop2 #i != 10 then loop again
+		
+		#loop 3 work 
+		lw $t0, 4($sp) #size
+		sub $t0, $t0, 1 #size--
+		lw $t1, 0($sp) #arr
+		lw $t2, 8($sp) #exp
+		lw $t3, 12($sp) #output
+		lw $t4, 16($sp) #count
+		loop3:
+			lw $t5, 0($t1) #arr[i]
+			div $t5, $t2 #arr[i]/exp
+			mflo $t6 #arr[i]/exp
+			li $t5, 10
+			div $t6, $t5 #arr[i]/exp/10
+			#arr[i]/exp % 10
+			mfhi $t6 #arr[i]/exp % 10
 			
-			lw $t8, 0($t7) #load the value from count
-			addi $t8, $t8, 1 #increment the value
-			sw $t8, 0($t7) #store the value in count
+			sll $t7, $t6, 2 #arr[i]/exp % 10* 4
+			add $t7, $t7, $t4 #arr[i]/exp % 10 * 4 + count
+			lw $t8, 0($t7) #count[arr[i]/exp % 10--]
+			sub $t8, $t8, 1 #count[arr[i]/exp % 10--]--
+			sll $t8, $t8, 2 #count[arr[i]/exp % 10--]-- * 4
+			add $t8, $t8, $t3 #count[arr[i]/exp % 10--]-- * 4 + output
+			
+			lw $t5, 0($t1) #arr[i]
+			sw $t5, 0($t8) #output[count[arr[i]/exp % 10--]--] = arr[i]
 
-			addi $t4, $t4, 1 #increment loop variable
-			addi $t0, $t0, 4 #increment arr pointer
+			sll $t6, $t6, 2 #arr[i]/exp % 10 * 4
+			add $t6, $t6, $t4 #arr[i]/exp % 10 * 4 + count
+			lw $t7, 0($t6) #count[arr[i]/exp % 10]
+			sub $t7, $t7, 1 #count[arr[i]/exp % 10]--
+			sw $t7, 0($t6) #count[arr[i]/exp % 10] = count[arr[i]/exp % 10]--
 
-			bne $t4, $t1, loop1 #loop1
+			addi $t1, $t1, 4 #arr++
+			addi $t0, $t0, -1 #size--
+			bgez $t0, loop3 #size >= 0 then loop again
 		
-		li $t4, 1 #loop variable
+		#loop 4 work
+		li $t0 , 0 #i = 0
+		lw $t1, 0($sp) #arr
+		lw $t2, 4($sp) #size
+		lw $t3, 12($sp) #output
+		loop4:
+			lw $t4, 0($t3) #output[i]
+			sw $t4, 0($t1) #arr[i] = output[i]
+			addi $t0, $t0, 1 #i++
+			addi $t1, $t1, 4 #arr++
+			addi $t3, $t3, 4 #output++
+			bne $t0, $t2, loop4 #i != size then loop again 
 
-		
+		#deallocation of stack
+		lw $t0, 0($sp) #arr
+		move $v0, $t0 #return statement
+		add $sp, $sp, 20
+		jr $ra
+
 	#int getMax(int arr[], int n)
 	getMax:
 		move $t0, $a0
@@ -141,10 +241,9 @@ arr_end:
 
 	#void printData(int arr[], int start, int len)
 	printData: 
-		
+
 		move $t0, $a0
-		
-		beq $a1, $a2, return_fromprint
+		beq $a1, $a2 , return_fromprint
 		
 		#print the element here.
 		lw $a0, 0($t0) 
