@@ -43,6 +43,8 @@ arr_end:
 
 		jal return_formain 	
 	
+
+	
 	# return (0) from main
 	return_formain:
 		add $sp, $sp, 8 #deallocation of stack
@@ -50,6 +52,8 @@ arr_end:
     	li $v0, 10
     	syscall
 		
+
+
 	#void radixSort(int arr[], int n)
 	#parameter: arr with values to sort, size of array, exp
 	#return: void
@@ -100,6 +104,8 @@ arr_end:
 			add $sp, $sp, 24 #deallocation of stack
 			jr $ra #return to main
 
+
+
 	#void countSort(int arr[], int n, int exp)
 	#parameter: arr with values to sort, size of array, exp
 	#return: void
@@ -138,7 +144,7 @@ arr_end:
 			addi $t2, $t2, 1 #i++
 			bne $t2, 10, initialloop #i != 10 then loop again
 
-		#loop 1 work
+		# ============================ loop 1 work ============================
 		lw $t1, 0($sp) #arr
 		lw $t2, 4($sp) #size
 		lw $t3, 8($sp) #exp
@@ -160,7 +166,7 @@ arr_end:
 			addi $t0, $t0, 1 #i++
 			bne $t0, $t2, loop1 #i != size then loop again
 
-		#loop 2
+		#===============================loop 2 ============================
 		li $t0, 1 #i = 1
 		lw $t1, 16($sp) #count
 		li $t2, 10 #count size
@@ -177,7 +183,7 @@ arr_end:
 			addi $t1, $t1, 4 #count++
 			bne $t0, $t2, loop2 #i != 10 then loop again
 			
-		#loop 3 work 
+		# ============================ loop 3 work  ============================
 		lw $t0, 4($sp) #size
 		sub $t0, $t0, 1 #size--
 		lw $t1, 0($sp) #arr
@@ -210,7 +216,7 @@ arr_end:
 			sub $t0, $t0, 1 #size--
 			bge $t0, $zero, loop3 #size >= 0 then loop again
 
-		#loop 4 work
+		# ============================ loop 4 work ============================
 		li $t0 , 0 #i = 0
 		lw $t1, 0($sp) #arr
 		lw $t2, 4($sp) #size
@@ -226,6 +232,8 @@ arr_end:
 		#deallocation of stack values 
 		add $sp, $sp, 20 
 		jr $ra #return to radixsort
+
+
 
 	#int getMax(int arr[], int n)
 	#parameter: arr with values to sort, size of array
@@ -254,10 +262,12 @@ arr_end:
 			move $v0, $t1 # return max
 			jr $ra # return to radixsort
 
+
+
+
 	#void printData(int arr[], int start, int len)
 	#parameter: arr with values to sort, start of array, length of array
 	#return: void
-
 	printData: 
 		move $t0, $a0 # passed arr address 
 		bge $a1, $a2 , return_fromprint # if start >= len then return to radixsort
