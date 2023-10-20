@@ -50,6 +50,7 @@ void updateContainerbyaddress(struct VariableContainer* container, const char* v
 }
 
 
+
 // ----------------------------------------------------------------FIND METHODS ----------------------------------------------------------------------------
 
 //FindInAboveScope: takes a variable name and search for this above scope and returns its value,
@@ -66,6 +67,7 @@ int FindInAboveScope(struct VariableContainer* container, const char* variablena
 		return INT_MIN; //else returns INT_MIN
 	}
 }
+
 
 /*
 FindInContainer: find the given variable name in current container.
@@ -84,6 +86,7 @@ int FindInContainerbyaddress(struct VariableContainer* container, const char* va
 	int index = container->containernumber;
 	return find(&(container->variablevalues[index]), variableaddress);
 }
+
 
 //-----------------------------------------------------------------------ADDRESS RETURNING METHODS------------------------------------------------
 /*
@@ -138,6 +141,45 @@ void MakeReturnablesAccesible(struct VariableContainer* container, int numofretu
 		}
 	}
 }
+
+//---------------------------------------------------------------Global scope methods------------------------------------------------------------
+
+// finds in global scope and returns values
+int FindInGlobalScope(struct VariableContainer* container, const char* variablename)
+{
+	int index = 0; // the global and shared scope.
+	return find(&(container->variablevalues[index]), addressofdata(&(container->variablenames[index]), variablename)); // finds the address in previous container and returns the value
+}
+
+/*
+FindInGlobalContainerbyaddress: find the give variable address in given container's global level and return its value
+*/
+int FindInGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress)
+{
+	int index = 0;
+	return find(&(container->variablevalues[index]), variableaddress);
+}
+
+/*
+getaddressfromGlobalContainer: gets the variable and returns address of the variable name from container
+*/
+char* getaddressfromGlobalContainer(struct VariableContainer* container, const char* variablename)
+{
+	int index = 0;
+	return addressofdata(&(container->variablenames[index]), variablename);
+}
+
+// updateGlobalContainerbyaddress: takes a variable address and its value and updates the value in the map
+void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue)
+{
+		int index = 0;
+		if(FindInGlobalContainerbyaddress(container, variableaddress) != -1)
+		{
+			insert(&(container->variablevalues[index]), variableaddress, variablevalue); // Map function insert handles this.
+		}
+}
+
+//================================================================================End of global methods =======================================================
 
 
 //Prints containers just for  testing purporse.

@@ -32,4 +32,9 @@ void DeleteScope(struct VariableContainer* container);
 void MakeReturnablesAccesible(struct VariableContainer* container, int numofreturnables);
 //---------------------------------TEST METHODs----------------------------------------------------
 void printcontainers(struct VariableContainer* container);
+//---------------------------------GLOBAL METHODs----------------------------------------------------
+char* getaddressfromGlobalContainer(struct VariableContainer* container, const char* variablename);
+int FindInGlobalScope(struct VariableContainer* container, const char* variablename);
+void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue);
+int FindInGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress);
 #endif

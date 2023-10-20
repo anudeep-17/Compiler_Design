@@ -69,7 +69,8 @@ Map* labellocations: contains all label line numbers collected while reading the
 */
 void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations)
 {
-
+    //.data flag
+    bool firstlinedata = false;
    //boolean flags to determine encounter of begin, call and return keywords.
     bool Beginevoked = false;
     bool Callevoked = false;
@@ -226,12 +227,19 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 
         /*
           SCOPE NOTES:
+            0.global introduced ...... using .data .int ...
             1.if only begin[s] is/are evoked then we can access the above scope and get the value of given variable
             2.if Begin & Call is/are evoked then we should only have access to current scope to find given variable.
             3.Mathamatically everytime ** n(begin) > n(call) **  we can access the scope above current and find a variable else NO
         */
-
-        if((Beginevoked && !Callevoked) || (numberofbegins != numberofcalls)) // if only begin is encountered or n(begins) are more than n(calls)
+        if(FindInGlobalScope(container, command) != INT_MIN && firstlinedata)
+        {
+          int value = FindInGlobalScope(container, command);
+          char charvalue[10];
+          sprintf(charvalue, "%d", value);
+          PushIntoStack(stack, charvalue); //push it into stack
+        }
+        else if((Beginevoked && !Callevoked) || (numberofbegins != numberofcalls)) // if only begin is encountered or n(begins) are more than n(calls)
         {
           //******************* we can access scope above ******************************
           if(FindInAboveScope(container, command) != INT_MIN) // if the scope above has this variable
@@ -287,7 +295,11 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           1. under any circumstance of begin/call/return when we make a new variable it is always in the current scope
           2. if we have encountered call and then encountered return, in begin/end everything after this is accessible its above scope so we count them and make them accessible.
         */
-        if (FindInContainer(container, command) != INT_MIN) // if current container has this variable.
+        if(FindInGlobalScope(container, command) != INT_MIN && firstlinedata)
+        {
+            PushIntoStack(stack, getaddressfromGlobalContainer(container, command)); //gets its address and push it to the stack
+        }
+        else if (FindInContainer(container, command) != INT_MIN) // if current container has this variable.
         {
             PushIntoStack(stack, getaddressfromContainer(container, command)); //gets its address and push it to the stack
         }
@@ -311,8 +323,13 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         int value = !isEmpty(stack) ? atoi(PopStack(stack)) : 0; //gets the value
         char *address = !isEmpty(stack) ? PeekStack(stack) : NULL; //gets the address
 
+        if(FindInGlobalContainerbyaddress(container, address) != INT_MIN && firstlinedata)
+        {
+          updateGlobalContainerbyaddress(container, address, value);
+          PopStack(stack);
+        }
         //if the address is found in the container then we update it and pop it from stack else its error handling
-        if (FindInContainerbyaddress(container, address) != INT_MIN)
+        else if (FindInContainerbyaddress(container, address) != INT_MIN)
         {
           updateContainerbyaddress(container, address, value);
         	PopStack(stack);
@@ -429,11 +446,34 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         }
 
       }
+      else if(strcmp(keyword, ".data") == 0)
+      {
+        firstlinedata = true;
+      }
+      else if(strcmp(keyword, ".int") == 0 && firstlinedata)
+      {
+        char *allglobalvar = strtok(command, " ");
+        while (allglobalvar !=NULL)
+        {
+          // printf("%s\n", allglobalvar);
+          if (FindInContainer(container, command) == INT_MIN) // if current container has this variable.
+          {
+            insertIntoContainer(container, command, 0);
+          }
+          allglobalvar = strtok(NULL, " ");
+        }
+      }
+      else if(strcmp(keyword, ".text") == 0 && firstlinedata)
+      {
+        NewScope(container); //Now we aint in global scope => moved a scope into the program segmentation
+      }
       else if(strcmp(keyword, "halt") == 0) // halt -> exit the excecution
       {
         exit(0); //safe exit.
         return;
       }
+      // printf("keyword : %s and command: %s\n", keyword, command);
+
    }
 }
 
