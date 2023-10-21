@@ -8,6 +8,8 @@ rightparenthesis: .ascii ")"
 plus: .ascii "+"
 minus: .ascii "-"
 newline: .asciiz "\n"
+outputprompt1: .asciiz "Expression to be evaluated: \n"
+outputprompt2: .asciiz " = "
 
 .text
 .globl main
@@ -24,66 +26,87 @@ newline: .asciiz "\n"
         li $a1, 64
         syscall
 
-        # # print input
-        # li $v0, 4
-        # la $a0, input_buffer
-        # syscall
+        # print input
+        li $v0, 4
+        la $a0, input_buffer
+        syscall
 
         la $a0, input_buffer # move input_buffer to $a0
         jal convertopostfix # jump to convertopostfix
         
+        # print output
+        li $v0, 4
+        la $a0, output_buffer
+        syscall
+
         # exit
         li $v0, 10
         syscall
 
     convertopostfix:
-        sub $sp, $sp, 68 # allocate 68 bytes on stack
         move $t0, $a0 # move input_buffer to $t0
-        sw $ra, 0($sp) # save return address
         sub $sp, $sp, 4 # allocate 4 bytes on stack
+        sw $ra, 0($sp) # save return address
         la $t8, output_buffer # load output_buffer to $t8
 
         read_each_char:
 
-            lb $t1, 0($t0) # load first char of input_buffer to $t1
+            lb $t7, 0($t0) # load first char of input_buffer to $t1
             
             li $t2, 10 # load 10 to $t2
-            beq $t1, $t2, endofstring # if $t1 == 10 => newline in ascii, exit loop
+            beq $t7, $t2, endofstring # if $t1 == 10 => newline in ascii, exit loop
 
-            sb $t1, 0($sp) # store $t1 to output_buffer
-
-            la $a0, 0($sp) # load first char of output_buffer to $a0
+            move $a0, $t7 # load first char of output_buffer to $a0
             jal isdigit
             
             beq $v0, -1, checkforparenthesis # if $v0 == -1 => not a digit, check for parenthesis
             
-            sb $v0, 0($t8) # store $v0 to output_buffer
-
-            li $v0, 1
-            lb $a0, 0($t8)
-            syscall
+           
+            sb $t7, 0($t8) # store $v0 to output_buffer
 
             addi $t8, $t8, 1 # increment output_buffer pointer
             addi $t0, $t0, 1 # increment input_buffer pointer
             j read_each_char # jump to convertopostfix
 
             checkforparenthesis:
-                la $a0, 0($sp)
+                move $a0, $t7
                 jal isparenthesis
 
                 beq $v0, -1, checkoperator # if $v0 == -1 => not a parenthesis, check for operator
                 
-                move $t1, $v0 # move $v0 to $t1
-                li $v0, 1
-                move $a0, $t1
-                syscall
+                beq $v0, 0, isleftparenthesis # if $v0 == 0 => leftparenthesis, jump to isleftparenthesis
+                beq $v0, 1, isrightparenthesis # if $v0 == 1 => rightparenthesis, jump to isrightparenthesis
 
-                addi $t0, $t0, 1 # increment input_buffer pointer
-                j read_each_char # jump to read_each_char
+                isleftparenthesis:
+                    lb $v0, leftparenthesis # load leftparenthesis to $v0
+                    sub $sp, $sp, 1 # increment stack pointer
+                    sb $v0, 0($sp)
+
+                    addi $t0, $t0, 1 # increment input_buffer pointer
+                    j read_each_char # jump to read_each_char
+
+                isrightparenthesis:
+                
+                    pop:
+                        lb $v0, leftparenthesis # load leftparenthesis to $v0
+                      
+                        lb $t1, 0($sp) # load first char of stack to $t1
+                        
+                        beq $t1, $v0, endofpop # if $t1 == $v0 => leftparenthesis, jump to endofpop
+                        
+                        sb $t1, 0($t8) # store $t1 to output_buffer
+                        
+                        addi $sp, $sp, 1 # decrement stack pointer
+                        addi $t8, $t8, 1 # increment output_buffer pointer
+                        j pop # jump to pop
+                    
+                    endofpop:
+                        addi $sp, $sp, 1 # decrement stack pointer
+                        addi $t0, $t0, 1 # increment input_buffer pointer
+                        j read_each_char # jump to read_each_char
             
             checkoperator:
-                la $a0, 0($sp)
-                move $a1, $t8
+                move $a0, $t7
                 jal isoperator
 
                 beq $v0, -1, endofstring # if $v0 == -1 => not a parenthesis, check for operator
@@ -94,38 +117,30 @@ newline: .asciiz "\n"
 
                 isplus:
                     lb $v0, plus # load plus to $v0
-                    sb $v0, 0($t8) # store plus to output_buffer
+                    sub $sp, $sp, 1 # increment stack pointer
+                    sb $v0, 0($sp)
 
-                    li $v0, 11,
-                    lb $a0, 0($t8)
-                    syscall
-
-                    addi $t8, $t8, 1 # increment output_buffer pointer
                     addi $t0, $t0, 1 # increment input_buffer pointer
                     j read_each_char # jump to read_each_char
 
                 isminus:
                     lb $v0, minus # load plus to $v0
-                    sb $v0, 0($t8) # store plus to output_buffer
-
-                    li $v0, 11,
-                    lb $a0, 0($t8)
-                    syscall
+                    sub $sp, $sp, 1 # increment stack pointer
+                    sb $v0, 0($sp)
+                   
                     
-                    addi $t8, $t8, 1 # increment output_buffer pointer
                     addi $t0, $t0, 1 # increment input_buffer pointer
                     j read_each_char # jump to read_each_char
 
         endofstring:
             #return 
-            addi $sp, $sp, 4 # deallocate 4 bytes on stack
             lw $ra, 0($sp) # load return address
-            add $sp, $sp, 68 # deallocate 68 bytes on stack
+            addi $sp, $sp, 4 # deallocate 4 bytes on stack
             jr $ra # jump to return address
 
 
     isdigit:
-        lb $t1, 0($a0) # load first char of output_buffer to $t1
+        move $t1, $a0 # load first char of output_buffer to $t1
         li $t2, 48 # load 48 => ascii(0) to $t1
         blt $t1, $t2, return_notdigit # if $t1 < 0 => not a digit, jump to isoperator
         li $t2, 57 # load 57 => ascii(9) to $t1
@@ -143,7 +158,7 @@ newline: .asciiz "\n"
             jr $ra # jump to return address
     
     isparenthesis:
-        lb $t1, 0($a0) # load first char of output_buffer to $t1
+        move $t1, $a0 # load first char of output_buffer to $t1
         lb $t2, leftparenthesis # load leftparenthesis to $t2
         bne $t1, $t2, checkforrightparenthesis # if $t1 != $t2 => not leftparenthesis, jump to checkforrightparenthesis
         
@@ -162,7 +177,7 @@ newline: .asciiz "\n"
             jr $ra # jump to return address
     
     isoperator:
-        lb $t1, 0($a0) # load first char of output_buffer to $t1
+        move $t1, $a0 # load first char of output_buffer to $t1
         lb, $t2, plus # load plus to $t2
         bne $t1, $t2, checkforminus # if $t1 != $t2 => not plus, jump to checkforminus
 
