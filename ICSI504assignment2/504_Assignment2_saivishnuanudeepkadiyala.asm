@@ -8,7 +8,7 @@ newline: .asciiz "\n"
 nonillegalflag: .ascii "#"
 outputprompt1: .asciiz "Expression to be evaluated: \n"
 outputprompt2: .asciiz " = "
-illegalinputprompt: .asciiz "\nIllegal input, Please check and try again\n"
+illegalinputprompt: .asciiz "\nIllegal input, Please check and try again\n Points to remember: \n 1. only Non-Negative \n 2. needs to be fully parenthesis \n 3. only + and - operators are allowed\n"
 
 input_buffer:   .space 64 # 64 bytes for input buffer
 input_bufferend: .byte 0 # null terminator
@@ -161,17 +161,12 @@ outputvalueend: .byte 0 # null terminator
                     # =============================a illegal input check ==========================
                     beqz $t0, endofstring # if $t0 == 0 => end of string, exit loop
 
-                    # negative number check if +- exists then the next coming is a negative number
+                    # negative number check if +- or ++ exists then the next coming is a negative number or illegal input
                     lb $t7, 0($t0) # load first char of input_buffer to $t1
                     move $a0, $t7 # load first char of output_buffer to $a0
                     jal isoperator
-                    beq $v0, 1, safe_Exit # if $v0 == 1 => is an negative operator, jump to safe_Exit
+                    bne $v0, -1, safe_Exit # if $v0 != 1 => is an another operator, jump to safe_Exit
                     
-                    #operators right should be number else a illegal operation tried.
-                    move $a0, $t7 # load first char of output_buffer to $a0
-                    jal isdigit
-                    beq $v0, -1, safe_Exit # if $v0 == -1 => not a digit, jump to illegalcharacter
-
                     j read_each_char # jump to read_each_char
 
                 isminus:
@@ -183,16 +178,11 @@ outputvalueend: .byte 0 # null terminator
                     # =============================a illegal input check ==========================
                     beqz $t0, endofstring # if $t0 == 0 => end of string, exit loop
 
-                    # negative number check if -- exists then the next coming is a negative number
+                    # negative number check if -- or -+ exists then the next coming is a negative number or illegal input
                     lb $t7, 0($t0) # load first char of input_buffer to $t1
                     move $a0, $t7 # load first char of output_buffer to $a0
                     jal isoperator
-                    beq $v0, 1, safe_Exit # if $v0 == 1 => is an negative operator, jump to safe_Exit
-                    
-                    #operators right should be number else a illegal operation tried.
-                    move $a0, $t7 # load first char of output_buffer to $a0
-                    jal isdigit
-                    beq $v0, -1, safe_Exit # if $v0 == -1 => not a digit, jump to illegalcharacter
+                    bne $v0, -1, safe_Exit # if $v0 != -1 => is an another operator, jump to safe_Exit
 
                     j read_each_char # jump to read_each_char
             
@@ -203,7 +193,7 @@ outputvalueend: .byte 0 # null terminator
             #stack check
             lb $t1, 0($sp) # load first char of stack to $t1
             lb $t2, nonillegalflag # load nonillegalflag to $t2
-            bne $t1, $t2, safe_Exit # if $t1 == $t2 => nonillegalflag, jump to safe_Exit
+            bne $t1, $t2, safe_Exit # if $t1 != $t2 => nonillegalflag, jump to safe_Exit
             
             addi $sp, $sp, 1 # decrement stack pointer
 
@@ -329,7 +319,7 @@ outputvalueend: .byte 0 # null terminator
         return_notoperator:
             li $v0, -1
             jr $ra # jump to return address
-    
+
     safe_Exit:
         # print illegalinputprompt
         li $v0, 4
