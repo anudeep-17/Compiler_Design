@@ -21,6 +21,7 @@ outputvalueend: .byte 0 # null terminator
 .text
 .globl main
 
+    # main function: takes userinput, calls converttopostfix and evaluatepostfix and then prints the output
     main:
         # print prompt
         li $v0, 4
@@ -72,20 +73,22 @@ outputvalueend: .byte 0 # null terminator
         li $v0, 10
         syscall
 
+    # convertopostfix function: takes input_buffer, converts it to postfix and stores it in output_buffer
     convertopostfix:
         move $t0, $a0 # move input_buffer to $t0
         sub $sp, $sp, 4 # allocate 4 bytes on stack
         sw $ra, 0($sp) # save return address
         la $t8, output_buffer # load output_buffer to $t8
 
+        #this is to check if the input is fully parenthesized or not. if not then it is an illegal input
         lb $t6, nonillegalflag # load nonillegalflag to $t6
         sub $sp, $sp, 1 # increment stack pointer
         sb $t6, 0($sp) # store $t6 to stack
 
         read_each_char:
 
-            lb $t7, 0($t0) # load first char of input_buffer to $t1
-            beqz $t7, endofstring # if $t1 == 10 => newline in ascii, exit loop
+            lb $t7, 0($t0) # load first char of input_buffer to $t7
+            beqz $t7, endofstring # if t7 is zero which is null pointer => end of string, exit loop
 
             move $a0, $t7 # load first char of output_buffer to $a0
             jal isdigit
@@ -93,15 +96,16 @@ outputvalueend: .byte 0 # null terminator
             beq $v0, -1, checkforparenthesis # if $v0 == -1 => not a digit, check for parenthesis
             
            
-            sb $t7, 0($t8) # store $v0 to output_buffer
+            sb $t7, 0($t8) # store $t7 to output_buffer
 
             addi $t8, $t8, 1 # increment output_buffer pointer
             addi $t0, $t0, 1 # increment input_buffer pointer
             j read_each_char # jump to convertopostfix
 
+            # if not digit then check for parenthesis.
             checkforparenthesis:
-                move $a0, $t7
-                jal isparenthesis
+                move $a0, $t7 #load parameters. $a0 = $t7
+                jal isparenthesis  # jump to isparenthesis
 
                 beq $v0, -1, checkoperator # if $v0 == -1 => not a parenthesis, check for operator
                 
@@ -115,13 +119,13 @@ outputvalueend: .byte 0 # null terminator
                     
                     addi $t0, $t0, 1 # increment input_buffer pointer
                     beqz $t0, endofstring # if $t0 == 0 => end of string, exit loop
-
-                    lb $t7, 0($t0) # load first char of input_buffer to $t1
-                    move $a0, $t7 # load first char of output_buffer to $a0
+                    
+                    # negative number check if (- exists then the next coming is a negative number or illegal input
+                    lb $t7, 0($t0) # load first char of input_buffer to $t7
+                    move $a0, $t7 # load parameters. $a0 = $t7
                     jal isoperator
                     beq $v0, 1, safe_Exit # if $v0 == 1 => is an negative operator, jump to safe_Exit
 
-                    # addi $t0, $t0, 1 # increment input_buffer pointer
                     j read_each_char # jump to read_each_char
 
                 isrightparenthesis:
@@ -158,12 +162,13 @@ outputvalueend: .byte 0 # null terminator
                     sb $v0, 0($sp)
 
                     addi $t0, $t0, 1 # increment input_buffer pointer
+
                     # =============================a illegal input check ==========================
                     beqz $t0, endofstring # if $t0 == 0 => end of string, exit loop
 
                     # negative number check if +- or ++ exists then the next coming is a negative number or illegal input
                     lb $t7, 0($t0) # load first char of input_buffer to $t1
-                    move $a0, $t7 # load first char of output_buffer to $a0
+                    move $a0, $t7 # load parameters. $a0 = $t7
                     jal isoperator
                     bne $v0, -1, safe_Exit # if $v0 != 1 => is an another operator, jump to safe_Exit
                     
@@ -180,7 +185,7 @@ outputvalueend: .byte 0 # null terminator
 
                     # negative number check if -- or -+ exists then the next coming is a negative number or illegal input
                     lb $t7, 0($t0) # load first char of input_buffer to $t1
-                    move $a0, $t7 # load first char of output_buffer to $a0
+                    move $a0, $t7 # load parameter to $a0
                     jal isoperator
                     bne $v0, -1, safe_Exit # if $v0 != -1 => is an another operator, jump to safe_Exit
 
@@ -193,7 +198,7 @@ outputvalueend: .byte 0 # null terminator
             #stack check
             lb $t1, 0($sp) # load first char of stack to $t1
             lb $t2, nonillegalflag # load nonillegalflag to $t2
-            bne $t1, $t2, safe_Exit # if $t1 != $t2 => nonillegalflag, jump to safe_Exit
+            bne $t1, $t2, safe_Exit # if $t1 != $t2 => nonillegalflag , jump to safe_Exit as stack is not empty so there exist some other values in stack.
             
             addi $sp, $sp, 1 # decrement stack pointer
 
@@ -202,6 +207,7 @@ outputvalueend: .byte 0 # null terminator
             addi $sp, $sp, 4 # deallocate 4 bytes on stack
             jr $ra # jump to return address
 
+    # evaluatepostfix function: takes output_buffer, evaluates it and stores it in outputvalue
     evaluatepostfix:
         move $t0, $a0 # move output_buffer to $t0
         sub $sp, $sp, 4 # allocate 4 bytes on stack
@@ -210,7 +216,7 @@ outputvalueend: .byte 0 # null terminator
         
         loop: 
             lb $t7, 0($t0) # load first char of output_buffer to $t7
-            beqz $t7, endloop # if $t1 == 10 => newline in ascii, exit loop
+            beqz $t7, endloop # if t7 is zero which is null pointer => end of string, exit loop
 
             move $a0, $t7 # load first char of output_buffer to $a0
             jal isdigit
@@ -264,7 +270,7 @@ outputvalueend: .byte 0 # null terminator
 
 
 
-
+    # isdigit function: takes a char and returns digit value if it is a digit else returns -1
     isdigit:
         move $t1, $a0 # load first char of output_buffer to $t1
         li $t2, 48 # load 48 => ascii(0) to $t1
@@ -283,6 +289,7 @@ outputvalueend: .byte 0 # null terminator
             li $v0, -1
             jr $ra # jump to return address
     
+    # isparenthesis function: takes a char and returns 0 if it is a leftparenthesis, 1 if it is a rightparenthesis else returns -1
     isparenthesis:
         move $t1, $a0 # load first char of output_buffer to $t1
         lb $t2, leftparenthesis # load leftparenthesis to $t2
@@ -301,7 +308,8 @@ outputvalueend: .byte 0 # null terminator
         return_notparenthesis:
             li $v0, -1
             jr $ra # jump to return address
-    
+
+    # isoperator function: takes a char and returns 0 if it is a plus, 1 if it is a minus else returns -1
     isoperator:
         move $t1, $a0 # load first char of output_buffer to $t1
         lb, $t2, plus # load plus to $t2
@@ -320,6 +328,7 @@ outputvalueend: .byte 0 # null terminator
             li $v0, -1
             jr $ra # jump to return address
 
+    # safe_Exit function: prints illegalinputprompt and exits
     safe_Exit:
         # print illegalinputprompt
         li $v0, 4
