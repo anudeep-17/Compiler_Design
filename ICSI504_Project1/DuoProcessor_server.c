@@ -48,15 +48,24 @@ void* ConnectionHandler(void* args)
   return NULL;
 }
 
-void ConnectedClienthandling(const int clientsockets[], const int serverSocket)
+void ConnectedClienthandling(const int clientsockets[], const int serverSocket, int numberofconnections)
 {
+  if(numberofconnections == 1)
+  {
+    int startexecutionflag = 1;
+
+    printf("From client %d filename Recieved %s \n",1, filenames[0]);
+    send(clientsockets[0], &startexecutionflag, sizeof(int), 0);
+    return;
+  }
+
   // Both terminals are ready, you can start execution
   printf("Both terminals are ready. Starting execution.\n");
 
   int startexecutionflag = 1;
 
-  printf("filenames of the given files by 1 %s \n", filenames[0]);
-  printf("filenames of the given files by 1 %s \n", filenames[1]);
+  printf("From client %d filename Recieved %s \n",1, filenames[0]);
+  printf("From client %d filename Recieved %s \n", 2, filenames[1]);
 
   printf("Sending start execution signal to client 0\n");
   send(clientsockets[0], &startexecutionflag, sizeof(int), 0);
@@ -65,8 +74,14 @@ void ConnectedClienthandling(const int clientsockets[], const int serverSocket)
 
 }
 
-void CloseConnections(const int clientsockets[], const int serverSocket)
+void CloseConnections(const int clientsockets[], const int serverSocket, int numberofconnections)
 {
+  if(numberofconnections == 1)
+  {
+    close(clientsockets[0]);
+    close(serverSocket);
+    return;
+  }
   // Close the server socket and client sockets
   close(clientsockets[0]);
   close(clientsockets[1]);
@@ -111,14 +126,49 @@ int main()
 
   for(int i = 0; i<2; i++)
   {
+    if(i == 0)
+    {
       clientsockets[i] = accept(serverSocket,(struct sockaddr*) &clientAddress, &clientAddressLen);
       pthread_create(&threads[i] ,NULL, ConnectionHandler, &clientsockets[i]);
+      printf("\n Recieved CLIENT 1 -- Will be waiting for second client for 15 secs \n");
+    }
+    else
+    {
+      struct timeval timeout;
+      timeout.tv_sec = 15;
+      timeout.tv_usec = 0;
+      fd_set readfds;
+      FD_ZERO(&readfds);
+      FD_SET(serverSocket, &readfds);
+
+      int secondconnection = select(serverSocket+1, &readfds, NULL, NULL, &timeout);
+
+      if(secondconnection == 0)
+      {
+        handleTimeout();
+      }
+      else if (secondconnection > 0 && FD_ISSET(serverSocket, &readfds))
+      {
+        clientsockets[i] = accept(serverSocket,(struct sockaddr*) &clientAddress, &clientAddressLen);
+        pthread_create(&threads[i] ,NULL, ConnectionHandler, &clientsockets[i]);
+      }
+    }
+
   }
 
-  pthread_barrier_wait(&barrier); // Wait for both clients to reach this point
+  if(UseOnlyOneFile == 0)
+  {
+    pthread_barrier_wait(&barrier); // Wait for both clients to reach this point
 
-  ConnectedClienthandling(clientsockets, serverSocket);
-  CloseConnections(clientsockets, serverSocket);
+    ConnectedClienthandling(clientsockets, serverSocket, 2);
+    CloseConnections(clientsockets, serverSocket, 2);
+  }
+  else
+  {
+    //only one file is encountered and we run it.
+    ConnectedClienthandling(clientsockets, serverSocket, 1);
+    CloseConnections(clientsockets, serverSocket, 1);
+  }
 
 
 

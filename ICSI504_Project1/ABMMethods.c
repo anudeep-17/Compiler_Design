@@ -224,7 +224,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if (strcmp(keyword, "rvalue") == 0)// rvalue -> gets the value of the given variable name using its address and pushes it into stack.
       {
-
         /*
           SCOPE NOTES:
             0.global introduced ...... using .data .int ...
@@ -472,8 +471,32 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         exit(0); //safe exit.
         return;
       }
-      // printf("keyword : %s and command: %s\n", keyword, command);
+      else if(strcmp(keyword, ":&") == 0)
+      {
+        char *topaddress = !isEmpty(stack) ? PopStack(stack) : NULL; //gets the address
+        char *bottomaddress = !isEmpty(stack) ? PopStack(stack) : NULL; //gets the address
 
+        if(FindInGlobalContainerbyaddress(container, topaddress) != INT_MIN && FindInGlobalContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
+        {
+          //both are global variables that are trying to copy value
+          updateGlobalContainerbyaddress(container, topaddress, FindInGlobalContainerbyaddress(container, bottomaddress));
+        }
+        else if(FindInGlobalContainerbyaddress(container, topaddress) != INT_MIN && FindInContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
+        {
+          //left is global variable and right is local variable
+          updateGlobalContainerbyaddress(container, topaddress, FindInContainerbyaddress(container, bottomaddress));
+        }
+        else if(FindInContainerbyaddress(container, topaddress) != INT_MIN && FindInGlobalContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
+        {
+          //left is local and right is global variable
+          updateContainerbyaddress(container, topaddress, FindInGlobalContainerbyaddress(container, bottomaddress));
+        }
+        else if(FindInContainerbyaddress(container, topaddress) != INT_MIN && FindInContainerbyaddress(container, bottomaddress) != INT_MIN)
+        {
+          //both are local variables
+          updateContainerbyaddress(container, topaddress, FindInContainerbyaddress(container, bottomaddress));
+        }
+      }
    }
 }
 
