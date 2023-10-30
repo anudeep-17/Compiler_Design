@@ -15,5 +15,6 @@ int isFullStrings(struct Stringarray* array);
 void append(struct Stringarray* array, const char* data);
 char* atindex(struct Stringarray* array, int location);
 char* addressofdata(struct Stringarray* array, const char* data);
+char* addressofdatabyoffset(struct Stringarray* array, const char* address, const int offset);
 void printarray(struct Stringarray* array);
 #endif

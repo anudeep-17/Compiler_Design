@@ -84,6 +84,34 @@ char* addressofdata(struct Stringarray* array, const char* data)
 	return NULL;
 }
 
+/*
+addressofdatabyoffset: moves the pointer, left or right basing on offset and return the address of that index.
+*/
+char* addressofdatabyoffset(struct Stringarray* array, const char* address, const int offset)
+{
+    for (int i = 0; i < Maxsize; i++)
+    {
+        char addr[20];
+        snprintf(addr, sizeof(addr), "%p", (void*)&(array->data[i)); // to check if the given address is this
+
+        if (strcmp(addr, address) == 0) // if that is the address and i is not at the last index
+        {
+					if(i+offset < 0 || i+offset > Maxsize-1)
+					{
+						printf("over the index requirement\n\n");
+						return NULL;
+					}
+					else
+					{
+						char next_addr[20];
+						snprintf(next_addr, sizeof(next_addr), "%p", (void*)&(array->data[i + offset]));
+						return next_addr;
+					}
+        }
+    }
+    return NULL; // Return NULL to indicate that the address wasn't found or it was the last element
+}
+
 
 //----------------------------------testing purpose---------------------------------------------------------
 void printarray(struct Stringarray* array)

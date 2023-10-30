@@ -57,6 +57,7 @@ void trimleadtrailspaces(char *line)
 	      memmove(line, start, strlen(start) + 1); // moves the line few character forward to remove spaces.
     }
 }
+/*==========================================================================Helper functions end ==================================================*/
 
 
 /*
@@ -115,9 +116,12 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if (*keyword == '-') // - -> pops the first two elements of stack and uses them to perform substraction.
       {
-        //pops first two elements on stack.
-        int right = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
-        int left = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
+        int right = 0;
+        int left  = 0;
+        char* rightval = !isEmpty(stack) ? PopStack(stack) : "";
+        char* leftval = !isEmpty(stack) ? PopStack(stack) : "";
+        right = atoi(rightval);
+        left = atoi(leftval);
         int result = left - right; //performs substraction
         char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
         sprintf(resulttochar, "%d", result); // converts result into char
@@ -125,13 +129,16 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if (*keyword == '+')// + -> pops the first two elements of stack and uses them to perform addition.
       {
-        //pops first two elements on stack.
-        int right = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
-        int left = !isEmpty(stack) ? atoi(PopStack(stack)) : 0;
-        int result = left + right;//performs addition
+        int right = 0;
+        int left  = 0;
+        char* rightval = !isEmpty(stack) ? PopStack(stack) : "";
+        char* leftval = !isEmpty(stack) ? PopStack(stack) : "";
+        right = atoi(rightval);
+        left = atoi(leftval);
+        int result = left + right; //performs substraction
         char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
-        sprintf(resulttochar, "%d", result);// converts result into char
-        PushIntoStack(stack, resulttochar);// pushes into stack.
+        sprintf(resulttochar, "%d", result); // converts result into char
+        PushIntoStack(stack, resulttochar); // pushes into stack.
       }
       else if (*keyword == '*')// * -> pops the first two elements of stack and uses them to perform multiplication.
       {
@@ -473,29 +480,8 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, ":&") == 0)
       {
-        char *topaddress = !isEmpty(stack) ? PopStack(stack) : NULL; //gets the address
-        char *bottomaddress = !isEmpty(stack) ? PopStack(stack) : NULL; //gets the address
+        //assign one memory address to the other.
 
-        if(FindInGlobalContainerbyaddress(container, topaddress) != INT_MIN && FindInGlobalContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
-        {
-          //both are global variables that are trying to copy value
-          updateGlobalContainerbyaddress(container, topaddress, FindInGlobalContainerbyaddress(container, bottomaddress));
-        }
-        else if(FindInGlobalContainerbyaddress(container, topaddress) != INT_MIN && FindInContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
-        {
-          //left is global variable and right is local variable
-          updateGlobalContainerbyaddress(container, topaddress, FindInContainerbyaddress(container, bottomaddress));
-        }
-        else if(FindInContainerbyaddress(container, topaddress) != INT_MIN && FindInGlobalContainerbyaddress(container, bottomaddress) != INT_MIN && firstlinedata)
-        {
-          //left is local and right is global variable
-          updateContainerbyaddress(container, topaddress, FindInGlobalContainerbyaddress(container, bottomaddress));
-        }
-        else if(FindInContainerbyaddress(container, topaddress) != INT_MIN && FindInContainerbyaddress(container, bottomaddress) != INT_MIN)
-        {
-          //both are local variables
-          updateContainerbyaddress(container, topaddress, FindInContainerbyaddress(container, bottomaddress));
-        }
       }
    }
 }

@@ -25,6 +25,7 @@ int FindInContainerbyaddress(struct VariableContainer* container, const char* va
 int FindInAboveScope(struct VariableContainer* container, const char* variablename);
 //---------------------------------ADDRESS GETTER METHODs----------------------------------------------------
 char* getaddressfromContainer(struct VariableContainer* container, const char* variablename);
+char* getVariableaddressByOffset(struct VariableContainer* container, const char* variableaddress, int offset);
 //---------------------------------SCOPE HANDLING METHODs----------------------------------------------------
 void NewScope(struct VariableContainer* container);
 void DeleteScope(struct VariableContainer* container);
@@ -32,6 +33,7 @@ void DeleteScope(struct VariableContainer* container);
 void MakeReturnablesAccesible(struct VariableContainer* container, int numofreturnables);
 //---------------------------------TEST METHODs----------------------------------------------------
 void printcontainers(struct VariableContainer* container);
+
 //---------------------------------GLOBAL METHODs----------------------------------------------------
 char* getaddressfromGlobalContainer(struct VariableContainer* container, const char* variablename);
 int FindInGlobalScope(struct VariableContainer* container, const char* variablename);
