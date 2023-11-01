@@ -92,7 +92,7 @@ char* addressofdatabyoffset(struct Stringarray* array, const char* address, cons
     for (int i = 0; i < Maxsize; i++)
     {
         char addr[20];
-        snprintf(addr, sizeof(addr), "%p", (void*)&(array->data[i)); // to check if the given address is this
+        snprintf(addr, sizeof(addr), "%p", (void*)&(array->data[i])); // to check if the given address is this
 
         if (strcmp(addr, address) == 0) // if that is the address and i is not at the last index
         {
@@ -103,7 +103,8 @@ char* addressofdatabyoffset(struct Stringarray* array, const char* address, cons
 					}
 					else
 					{
-						char next_addr[20];
+						static char next_addr[20];
+						// printf("variable is %s, address is %p \n\n", array->data[i + offset], (void*)&(array->data[i + offset]));
 						snprintf(next_addr, sizeof(next_addr), "%p", (void*)&(array->data[i + offset]));
 						return next_addr;
 					}

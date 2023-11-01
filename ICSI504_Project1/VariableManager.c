@@ -26,7 +26,7 @@ void initializeContainer(struct VariableContainer* container)
 //insertIntoContainer: Inserts given variablename and its value into container.
 void insertIntoContainer(struct VariableContainer* container, const char* variablename, int variablevalue)
 {
-
+	// printf("check for global, variablename : %s, and variablevalue: %d \n\n", variablename, variablevalue);
 	if(container->containernumber < Maxarraysize)
 	{
 		int index = container->containernumber; // takes current contianer number
@@ -46,23 +46,6 @@ void updateContainerbyaddress(struct VariableContainer* container, const char* v
 		if(FindInContainerbyaddress(container, variableaddress) != -1)
 		{
 			insert(&(container->variablevalues[index]), variableaddress, variablevalue); // Map function insert handles this.
-
-			//=================================update the attached address on update the given address======================
-			if(findSyncedWith(&(container->variablevalues[index]), variableaddress) != NULL)
-			{
-				//if this variable is synced with any other address we update that address too
-				if(FindInGlobalContainerbyaddress(&container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
-				{
-					//if in scope of global container
-					updateGlobalContainerbyaddress(&container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
-				}
-				else if(FindInContainerbyaddress(&container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
-				{
-					//if in the scope of current container
-					updateContainerbyaddress(&container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
-				}
-			}
-
 		}
 }
 
@@ -190,34 +173,31 @@ char* getaddressfromGlobalContainer(struct VariableContainer* container, const c
 void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue)
 {
 		int index = 0;
+		// printf("obtained variable address: %s, and its syncedaddress %s \n\n\n", variableaddress, findSyncedWith(&(container->variablevalues[index]), variableaddress));
 		if(FindInGlobalContainerbyaddress(container, variableaddress) != -1)
 		{
 			insert(&(container->variablevalues[index]), variableaddress, variablevalue); // Map function insert handles this.
 
 			//=================================update the attached address on update the given address======================
-			if(findSyncedWith(&(container->variablevalues[index]), variableaddress) != NULL)
+			if(strcmp(findSyncedWith(&(container->variablevalues[index]), variableaddress), "NO addr") != 0)
 			{
 				//if this variable is synced with any other address we update that address too
-				if(FindInGlobalContainerbyaddress(&container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
+				if(FindInGlobalContainerbyaddress(container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
 				{
 					//if in scope of global container
-					updateGlobalContainerbyaddress(&container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
-				}
-				else if(FindInContainerbyaddress(&container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
-				{
-					//if in the scope of current container
-					updateContainerbyaddress(&container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
+					updateGlobalContainerbyaddress(container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
 				}
 			}
+
 		}
 }
-
+//
 char* getVariableaddressByOffset(struct VariableContainer* container, const char* variableaddress, int offset)
 {
 	//gets the address that is +/- offset to the left/right of given variable. --> only in global scope expecting it to behave like MIPS else need another method
 	// for current container.
 	int index = 0;
-	return addressofdatabyoffset(&(container->variablenames[index]), variablename, offset);
+	return addressofdatabyoffset(&(container->variablenames[index]), variableaddress, offset);
 }
 //================================================================================End of global methods =======================================================
 
@@ -225,16 +205,7 @@ char* getVariableaddressByOffset(struct VariableContainer* container, const char
 void setSyncBetween(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith)
 {
 	int index = 0;
-
-	if(FindInGlobalContainerbyaddress(&container, variableaddress) != INT_MIN)
-	{
-		//if the given left address is global address and not local
-		index = 0; //search in global scope and set it there.
-	}
-	else if(FindInContainerbyaddress(&container, variableaddress) != INT_MIN)
-	{
-		int index = container->containernumber; // search in current index and set it here.
-	}
+	// printf("address obtainer: %s, and address to sync with %s\n\n\n", variableaddress, addresstosyncwith);
 	//now use the index to setup the sync
 	InsertSyncedAddress(&(container->variablevalues[index]), variableaddress, addresstosyncwith);
 }

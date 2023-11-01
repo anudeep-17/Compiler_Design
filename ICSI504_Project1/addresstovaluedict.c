@@ -40,10 +40,12 @@ InsertSyncedAddress: takes a key where it needs to put the address it needs to s
 */
 void InsertSyncedAddress(struct Map* map, const char* key, const char* syncaddress)
 {
+	// printf("in addresstovaluedict: key: %s and syncadd : %s \n\n\n", key, syncaddress);
 	for(int i = 0; i<MaxMapsize; i++)
   {
           if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
           {
+									// printf("\n\n\n\ni was here to set the address \n\n\n\n");
                   strcpy(map->Mapitems[i].syncedaddress, syncaddress); //copy the given syncadd to map
 									return;
           }
@@ -56,7 +58,7 @@ find: finds the given key in map and returns its value.
 */
 int find(struct Map* map, const char* key)
 {
-	if(*key != NULL)
+	if(key != NULL)
 	{
 		for(int i = 0; i < MaxMapsize; i++)
 		{
@@ -72,19 +74,28 @@ int find(struct Map* map, const char* key)
 /*
 findSyncedWith: for given key address find its synced address to update the address.
 */
-char* findSyncedWith(struct Map* map, cont char* key)
+char* findSyncedWith(struct Map* map, const char* key)
 {
-	if(*key != '\0')
+	if(key != NULL)
 	{
 		for(int i = 0; i < MaxMapsize; i++)
 		{
 			if(strcmp(map->Mapitems[i].address, key) == 0) //when the key match found we return its value
 			{
-				return map->Mapitems[i].syncedaddress; //return the synced address.
+				if (strlen(map->Mapitems[i].syncedaddress) > 0)
+				{
+						// printf("\n\n\n\ni was here to get the address \n\n\n\n");
+            return map->Mapitems[i].syncedaddress; // Return the synced address.
+        }
+				else
+				{
+            // Handle the case where syncedaddress is empty ('\0').
+            return "NO addr"; // Or return NULL or another appropriate value.
+        }
 			}
 		}
 	}
-	return NULL; //else returns NULL
+	return "NO addr"; //else returns NULL
 }
 
 //-----------------------------------------------------------------for testing -----------------------------------------------------------------------------------

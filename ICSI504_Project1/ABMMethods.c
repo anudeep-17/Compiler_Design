@@ -18,6 +18,19 @@ trimtrailspaces: used to remove forward and backward spaces from a given line fr
 returns: void, manipulates the parameter passed line.
 parameter: string line from the file
 */
+
+bool isaddress(char* address)
+{
+  if(strstr(address, "0x") != NULL)
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
 void trimleadtrailspaces(char *line)
 {
     //if the entered line is null, return
@@ -94,6 +107,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       char *keyword = pair->Key_CommandPair[i].keyword; // stores the current keyword
       char *command = pair->Key_CommandPair[i].command; // stores current command
 
+      // printf("keyword: %s, command: %s \n", keyword, command);
       // we handle every possible keyword here.
       if(strcmp(keyword, "show") == 0) // show -> prints the argument entered with it.
       {
@@ -121,11 +135,26 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         char* rightval = !isEmpty(stack) ? PopStack(stack) : "";
         char* leftval = !isEmpty(stack) ? PopStack(stack) : "";
         right = atoi(rightval);
-        left = atoi(leftval);
-        int result = left - right; //performs substraction
-        char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
-        sprintf(resulttochar, "%d", result); // converts result into char
-        PushIntoStack(stack, resulttochar); // pushes into stack.
+        if(isaddress(leftval))
+        {
+          if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
+          {
+            //if left is address.
+            PushIntoStack(stack, getVariableaddressByOffset(container, leftval, -right));
+          }
+          else
+          {
+            printf("variable isnt global \n\n\n");
+          }
+        }
+        else
+        {
+          left = atoi(leftval);
+          int result = left - right; //performs substraction
+          char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
+          sprintf(resulttochar, "%d", result); // converts result into char
+          PushIntoStack(stack, resulttochar); // pushes into stack.
+        }
       }
       else if (*keyword == '+')// + -> pops the first two elements of stack and uses them to perform addition.
       {
@@ -133,12 +162,29 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         int left  = 0;
         char* rightval = !isEmpty(stack) ? PopStack(stack) : "";
         char* leftval = !isEmpty(stack) ? PopStack(stack) : "";
+        //right should have a number so we can take care of this
         right = atoi(rightval);
-        left = atoi(leftval);
-        int result = left + right; //performs substraction
-        char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
-        sprintf(resulttochar, "%d", result); // converts result into char
-        PushIntoStack(stack, resulttochar); // pushes into stack.
+        if(isaddress(leftval))
+        {
+          if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
+          {
+            //if left is address.
+            PushIntoStack(stack, getVariableaddressByOffset(container, leftval, right));
+          }
+          else
+          {
+            printf("variable isnt global \n\n\n");
+          }
+        }
+        else
+        {
+          left = atoi(leftval);
+          int result = left + right; //performs substraction
+          char resulttochar[10];// a char buffer that is used to convert the int to char* and push it into stack.
+          sprintf(resulttochar, "%d", result); // converts result into char
+          PushIntoStack(stack, resulttochar); // pushes into stack.
+        }
+
       }
       else if (*keyword == '*')// * -> pops the first two elements of stack and uses them to perform multiplication.
       {
@@ -458,15 +504,26 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, ".int") == 0 && firstlinedata)
       {
-        char *allglobalvar = strtok(command, " ");
-        while (allglobalvar !=NULL)
+        char* tokens[10];
+        int tokencount = 0;
+
+        char* token = strtok(command, " ");
+        while(token != NULL && tokencount<10)
         {
-          // printf("%s\n", allglobalvar);
-          if (FindInContainer(container, command) == INT_MIN) // if current container has this variable.
-          {
-            insertIntoContainer(container, command, 0);
-          }
-          allglobalvar = strtok(NULL, " ");
+          tokens[tokencount] = strdup(token);
+          tokencount++;
+          token = strtok(NULL, " ");
+        }
+        // Print the tokens or do something with them
+        for (int i = 0; i < tokencount; i++) {
+            // printf("Token %d: %s\n", i, tokens[i]);
+            insertIntoContainer(container, tokens[i], 0); //initialize all global
+        }
+        // printcontainers(container);
+        // Free allocated memory
+        for (int i = 0; i < tokencount; i++)
+        {
+            free(tokens[i]);
         }
       }
       else if(strcmp(keyword, ".text") == 0 && firstlinedata)
@@ -481,7 +538,11 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       else if(strcmp(keyword, ":&") == 0)
       {
         //assign one memory address to the other.
+        char* rightaddress = PopStack(stack);
+        char* leftaddress = PopStack(stack);
 
+        // now we need left address synced with right address.
+        setSyncBetween(container, leftaddress, rightaddress);
       }
    }
 }

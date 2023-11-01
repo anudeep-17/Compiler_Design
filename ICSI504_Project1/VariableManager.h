@@ -31,6 +31,8 @@ void NewScope(struct VariableContainer* container);
 void DeleteScope(struct VariableContainer* container);
 //---------------------------------RETURN HANDLING METHODs----------------------------------------------------
 void MakeReturnablesAccesible(struct VariableContainer* container, int numofreturnables);
+//---------------------------------Sync setting methods ----------------------------------------------------
+void setSyncBetween(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith);
 //---------------------------------TEST METHODs----------------------------------------------------
 void printcontainers(struct VariableContainer* container);
 

@@ -1,5 +1,6 @@
 .data
 .int d1 d2 d3
+.int temp
 .text
 show d1 = 5;
 lvalue d1
@@ -31,9 +32,9 @@ pop
 show----------------------------------------
 lvalue temp
 lvalue d1
-show Now we add 1 to d1's address, so that we can manipulate the show value of d2
 push 1
 +
+show Now we add 1 to d1's address, so that we can manipulate the show value of d2
 :&
 show Now we store data in temp. It's value is 88. Now we can also show set this value to d2
 lvalue temp
