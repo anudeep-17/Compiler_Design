@@ -3,6 +3,6 @@
 #define ABMMethods
 
 //Methods declarations
-void abminstructionrunner(FILE* abmInstructionsfile);
+void abminstructionrunner(int clientsocketaddress,FILE* abmInstructionsfile);
 
 #endif

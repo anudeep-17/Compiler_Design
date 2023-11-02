@@ -11,24 +11,18 @@
 // this should behave as client to the server where we check for duocore processors.
 //gcc Stack.c ABMMethods.c StackBasedMicroprocessor.c ABMReader.c Variablearray.c addresstovaluedict.c IndexKeywordCommandPair.c VariableManager.c -o Project1
 
-void ExcecutionHelper(char* filename)
+void ExcecutionHelper(int clientSocket, char* filename)
 {
 	// uses the given abm files and execute
 	FILE* abmFile = abmFileReader(filename);
-	abminstructionrunner(abmFile);
-}
-
-void handleSignal(const int signal)
-{
-    // Implement the code to handle the signal received from the server
-    printf("Received signal from the server: %d\n", signal);
+	abminstructionrunner(clientSocket, abmFile);
 }
 
 int main(int argc, char* argv[])
 {
 		if(argv[1] != NULL)
 		{
-			//=====================================server - client connection establishment ===============================================================
+			//===================================== server - client connection establishment ===============================================================
 			int clientSocket;
 			struct sockaddr_in serverAddress;
 			clientSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,7 +49,7 @@ int main(int argc, char* argv[])
 			send(clientSocket, argv[1], strlen(argv[1]), 0);
 
 			// ===================================================================== server - client connection established, filename also sent ==========================
-			
+
 			// ==================================================== gets signal from server to start excecuting abm file =================================================
 			int signal;
 	 		int bytes_received;
@@ -69,7 +63,8 @@ int main(int argc, char* argv[])
             printf("Received signal to start excecution\n\n\n");
 
 						// calls the ExcecutionHelper to evoke the abm file runner.
-						ExcecutionHelper(argv[1]);
+
+						ExcecutionHelper(clientSocket, argv[1]);
 
             break; // Exit the loop when the desired data is received
         	}

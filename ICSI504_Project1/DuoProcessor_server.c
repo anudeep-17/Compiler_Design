@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
+// #include "VariableManager.h"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barrier; // Declare the barrier
@@ -48,30 +49,23 @@ void* ConnectionHandler(void* args)
   return NULL;
 }
 
-void ConnectedClienthandling(const int clientsockets[], const int serverSocket, int numberofconnections)
+void* StartExcecution_SignalReceiver(void *args)
 {
-  if(numberofconnections == 1)
-  {
-    int startexecutionflag = 1;
-
-    printf("From client %d filename Recieved %s \n",1, filenames[0]);
-    send(clientsockets[0], &startexecutionflag, sizeof(int), 0);
-    return;
-  }
-
-  // Both terminals are ready, you can start execution
-  printf("Both terminals are ready. Starting execution.\n");
-
+  int clientsocket = *((int*)args);
   int startexecutionflag = 1;
+  int bytes_received;
 
-  printf("From client %d filename Recieved %s \n",1, filenames[0]);
-  printf("From client %d filename Recieved %s \n", 2, filenames[1]);
-
-  printf("Sending start execution signal to client 0\n");
-  send(clientsockets[0], &startexecutionflag, sizeof(int), 0);
-  printf("Sending start execution signal to client 1\n");
-  send(clientsockets[1], &startexecutionflag, sizeof(int), 0);
-
+  send(clientsocket, &startexecutionflag, sizeof(int), 0);
+  while(1)
+  {
+    char buffer[256];
+    bytes_received = recv(clientsocket, buffer, sizeof(buffer), 0);
+    if(bytes_received > 0)
+    {
+      buffer[bytes_received] = '\0';
+      printf("recieved from client %d : %s and lenof buffer %ld \n\n", clientsocket, buffer, strlen(buffer));
+    }
+  }
 }
 
 void CloseConnections(const int clientsockets[], const int serverSocket, int numberofconnections)
@@ -135,7 +129,7 @@ int main()
     else
     {
       struct timeval timeout;
-      timeout.tv_sec = 1;
+      timeout.tv_sec = 15;
       timeout.tv_usec = 0;
       fd_set readfds;
       FD_ZERO(&readfds);
@@ -160,13 +154,32 @@ int main()
   {
     pthread_barrier_wait(&barrier); // Wait for both clients to reach this point
 
-    ConnectedClienthandling(clientsockets, serverSocket, 2);
+    printf("Both terminals are ready. Starting execution.\n");
+    printf("From client %d filename Recieved %s \n",1, filenames[0]);
+    printf("From client %d filename Recieved %s \n", 2, filenames[1]);
+
+    pthread_create(&threads[0], NULL,StartExcecution_SignalReceiver,&clientsockets[0]);
+    pthread_create(&threads[1], NULL,StartExcecution_SignalReceiver,&clientsockets[1]);
+
+    /*
+    lets both the threads finish and only then ends the server.
+    They will run concurrently and independently, processing data from their respective client sockets.
+    There is no guarantee of the order in which they start or complete their execution, as thread scheduling is managed by the operating system and can vary.
+
+    */
+    for (int i = 0; i < 2; i++)
+    {
+       pthread_join(threads[i], NULL);
+    }
+
     CloseConnections(clientsockets, serverSocket, 2);
   }
   else
   {
     //only one file is encountered and we run it.
-    ConnectedClienthandling(clientsockets, serverSocket, 1);
+    printf("From client %d filename Recieved %s \n",1, filenames[0]);
+    //a thread is not required as it will run together anyway.
+    StartExcecution_SignalReceiver(&clientsockets[0]);
     CloseConnections(clientsockets, serverSocket, 1);
   }
 

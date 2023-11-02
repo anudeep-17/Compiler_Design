@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 //Import statements for all the header files that are required.
 #include "ABMMethods.h"
 #include "IndexKeywordCommandPair.h"
@@ -18,6 +21,7 @@ trimtrailspaces: used to remove forward and backward spaces from a given line fr
 returns: void, manipulates the parameter passed line.
 parameter: string line from the file
 */
+
 
 bool isaddress(char* address)
 {
@@ -81,7 +85,7 @@ CharStack* stack: a empty stack to perform given commands.
 VariableContainer* container: contains the a 2d array that stores variablename, a map that stores variablename and its address for each variable basing on scope.
 Map* labellocations: contains all label line numbers collected while reading the file.
 */
-void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations)
+void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations, int clientsocketaddress)
 {
     //.data flag
     bool firstlinedata = false;
@@ -504,27 +508,16 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, ".int") == 0 && firstlinedata)
       {
-        char* tokens[10];
-        int tokencount = 0;
+        //testsend
+        send(clientsocketaddress, command, strlen(command), 0);
 
         char* token = strtok(command, " ");
-        while(token != NULL && tokencount<10)
+        while(token != NULL)
         {
-          tokens[tokencount] = strdup(token);
-          tokencount++;
+          insertIntoContainer(container, token, 0); //initialize all global
           token = strtok(NULL, " ");
         }
-        // Print the tokens or do something with them
-        for (int i = 0; i < tokencount; i++) {
-            // printf("Token %d: %s\n", i, tokens[i]);
-            insertIntoContainer(container, tokens[i], 0); //initialize all global
-        }
         // printcontainers(container);
-        // Free allocated memory
-        for (int i = 0; i < tokencount; i++)
-        {
-            free(tokens[i]);
-        }
       }
       else if(strcmp(keyword, ".text") == 0 && firstlinedata)
       {
@@ -551,7 +544,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 abminstructionfile: takes instruction FILE, reads it into a Pair of linenumber, keyword, command and uses it call abmkeywordhelper to excecute.
 parameter: a file with all instructions
 */
-void abminstructionrunner(FILE* abminstructionfile)
+void abminstructionrunner(int clientsocketaddress, FILE* abminstructionfile)
 {
 
     if (abminstructionfile == NULL)
@@ -614,5 +607,5 @@ void abminstructionrunner(FILE* abminstructionfile)
       }
     }
     //calls abmwordhelp on to run all the keyword, command.
-    abmkeywordhelper(&pair, &stack, &container, &labellocations);
+    abmkeywordhelper(&pair, &stack, &container, &labellocations, clientsocketaddress);
 }
