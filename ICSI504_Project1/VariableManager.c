@@ -186,12 +186,13 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 				{
 					//if in scope of global container
 					updateGlobalContainerbyaddress(container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
+					InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
 				}
 			}
 
 		}
 }
-//
+//gets the variable address by a particular offset
 char* getVariableaddressByOffset(struct VariableContainer* container, const char* variableaddress, int offset)
 {
 	//gets the address that is +/- offset to the left/right of given variable. --> only in global scope expecting it to behave like MIPS else need another method
@@ -199,7 +200,6 @@ char* getVariableaddressByOffset(struct VariableContainer* container, const char
 	int index = 0;
 	return addressofdatabyoffset(&(container->variablenames[index]), variableaddress, offset);
 }
-//================================================================================End of global methods =======================================================
 
 //basically works on &x = &y making x a copy of y and everytime x is updated y updates
 void setSyncBetween(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith)
@@ -209,6 +209,28 @@ void setSyncBetween(struct VariableContainer* container, const char* variableadd
 	//now use the index to setup the sync
 	InsertSyncedAddress(&(container->variablevalues[index]), variableaddress, addresstosyncwith);
 }
+
+//works on setting status weather it is I, S, M
+void InGlobalScopeSetStatus(struct VariableContainer* container, const char* variableaddress, const char* status)
+{
+	int index = 0;
+	InsertStatus(&(container->variablevalues[index]), variableaddress, status);
+}
+
+char* InGlobalScopeFindStatus(struct VariableContainer* container, const char* variableaddress)
+{
+	int index = 0;
+	return findStatus(&(container->variablevalues[index]), variableaddress);
+}
+
+bool InGlobalScopeIsItGivenStatus(struct VariableContainer* container, const char* variableaddress,const char* status)
+{
+	int index = 0;
+	return ifstatus(&(container->variablevalues[index]), variableaddress, status);
+}
+//================================================================================End of global methods =======================================================
+
+
 
 //Prints containers just for  testing purporse.
 void printcontainers(struct VariableContainer* container)

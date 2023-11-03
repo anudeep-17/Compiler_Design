@@ -3,7 +3,7 @@
 #include <string.h>
 #include <limits.h>
 #include "addresstovaluedict.h"
-
+#include <stdbool.h>
 /*
 Map: a basic key to value map
 */
@@ -30,6 +30,7 @@ void insert(struct Map* map, const char* key, int value)
 		strcpy(map->Mapitems[map->currentsize].address, key);
 		map->Mapitems[map->currentsize].value = value;
 		map->Mapitems[map->currentsize].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
+		map->Mapitems[map->currentsize].status[0] = '\0'; // null terminates status for now.
 		map->currentsize++;
  	}
 
@@ -52,6 +53,21 @@ void InsertSyncedAddress(struct Map* map, const char* key, const char* syncaddre
   }
 }
 
+/*
+InsertStatus: takes a status and adds the status to the variable, it is only done to global variables and rest all have null
+*/
+void InsertStatus(struct Map* map, const char* key, const char* status)
+{
+	// printf("in addresstovaluedict: key: %s and syncadd : %s \n\n\n", key, status);
+	for(int i = 0; i<MaxMapsize; i++)
+	{
+					if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
+					{
+									strcpy(map->Mapitems[i].status, status); //copy the given status to map
+									return;
+					}
+	}
+}
 
 /*
 find: finds the given key in map and returns its value.
@@ -98,11 +114,57 @@ char* findSyncedWith(struct Map* map, const char* key)
 	return "NO addr"; //else returns NULL
 }
 
+
+/*
+findStatus: for given key address find its status and update the status.
+*/
+char* findStatus(struct Map* map, const char* key)
+{
+	if(key != NULL)
+	{
+		for(int i = 0; i<MaxMapsize; i++)
+		{
+			if(strcmp(map->Mapitems[i].address, key) == 0)
+			{
+				if(strlen(map->Mapitems[i].status) > 0)
+				{
+					return map->Mapitems[i].status;
+				}
+				else
+				{
+					return "NOSTATUS";
+				}
+			}
+		}
+	}
+	return "NOSTATUS";
+}
+
+
+/*
+ifstatus :  gets key and boolen and return true or false basing on the idea if status is same as given or not.
+*/
+
+bool ifstatus(struct Map* map, const char* key, const char* status)
+{
+	if(key != NULL)
+	{
+		for(int i = 0; i<MaxMapsize; i++)
+		{
+			if(strcmp(map->Mapitems[i].address, key) == 0)
+			{
+				return strcmp(map->Mapitems[i].status, status) == 0;
+			}
+		}
+	}
+	return false;
+}
+
 //-----------------------------------------------------------------for testing -----------------------------------------------------------------------------------
 void printMap(struct Map *map)
 {
     for (int i = 0; i < map->currentsize; i++)
 		{
-        printf("Address: %s, Value: %d\n", map->Mapitems[i].address, map->Mapitems[i].value);
+        printf("Address: %s, Value: %d, Syncedaddress: %s, Status: %s\n", map->Mapitems[i].address, map->Mapitems[i].value, map->Mapitems[i].syncedaddress,map->Mapitems[i].status);
     }
 }

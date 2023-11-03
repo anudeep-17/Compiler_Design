@@ -9,8 +9,8 @@
 
 //Main FILE thats runs all the abm files given to produce output.
 // this should behave as client to the server where we check for duocore processors.
-//gcc Stack.c ABMMethods.c StackBasedMicroprocessor.c ABMReader.c Variablearray.c addresstovaluedict.c IndexKeywordCommandPair.c VariableManager.c -o Project1
-
+//for client : gcc Stack.c ABMMethods.c StackBasedMicroprocessor.c ABMReader.c Variablearray.c addresstovaluedict.c IndexKeywordCommandPair.c VariableManager.c -o Project1
+//for server : gcc -o server Variablearray.c addresstovaluedict.c VariableManager.c DuoProcessor_server.c -lpthread
 void ExcecutionHelper(int clientSocket, char* filename)
 {
 	// uses the given abm files and execute

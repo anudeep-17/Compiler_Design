@@ -33,6 +33,10 @@ void DeleteScope(struct VariableContainer* container);
 void MakeReturnablesAccesible(struct VariableContainer* container, int numofreturnables);
 //---------------------------------Sync setting methods ----------------------------------------------------
 void setSyncBetween(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith);
+//---------------------------------Status Methods ----------------------------------
+void InGlobalScopeSetStatus(struct VariableContainer* container, const char* variableaddress, const char* status);
+char* InGlobalScopeFindStatus(struct VariableContainer* container, const char* variableaddress);
+bool InGlobalScopeIsItGivenStatus(struct VariableContainer* container, const char* variableaddress,const char* status);
 //---------------------------------TEST METHODs----------------------------------------------------
 void printcontainers(struct VariableContainer* container);
 

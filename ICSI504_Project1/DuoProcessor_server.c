@@ -6,7 +6,9 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <pthread.h>
-// #include "VariableManager.h"
+#include <limits.h>
+
+#include "VariableManager.h"
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barrier; // Declare the barrier
@@ -15,7 +17,13 @@ int numberofactiveterminals = 0;
 char filenames[2][256];
 int filenamesRecieved = 0;
 int UseOnlyOneFile = 0;
+struct VariableContainer MemoryBus; // VariableContainer to store variables basing on scope while running abmfile
 
+//=================================================================Memory BUS ======================================================================================
+
+
+
+//=================================================================server===========================================================================================
 void handleTimeout()
 {
     printf("\n\n Timeout: after first client connection, second client havent established under 15 secs, moving forward with 1 file \n\n");
@@ -64,6 +72,10 @@ void* StartExcecution_SignalReceiver(void *args)
     {
       buffer[bytes_received] = '\0';
       printf("recieved from client %d : %s and lenof buffer %ld \n\n", clientsocket, buffer, strlen(buffer));
+
+      //locks the task on MemoryBus here.
+      // pthread_mutex_lock(&mutex);
+      // pthread_mutex_unlock(&mutex);
     }
   }
 }
@@ -129,7 +141,7 @@ int main()
     else
     {
       struct timeval timeout;
-      timeout.tv_sec = 15;
+      timeout.tv_sec = 1;
       timeout.tv_usec = 0;
       fd_set readfds;
       FD_ZERO(&readfds);
@@ -149,6 +161,9 @@ int main()
     }
 
   }
+
+  //initializes Bus for the server work.
+  initializeContainer(&MemoryBus);
 
   if(UseOnlyOneFile == 0)
   {

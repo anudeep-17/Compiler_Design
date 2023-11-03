@@ -16,13 +16,48 @@
 #include "addresstovaluedict.h"
 #include "VariableManager.h"
 
+
+//status for global variables:
 /*
-trimtrailspaces: used to remove forward and backward spaces from a given line from file.
-returns: void, manipulates the parameter passed line.
-parameter: string line from the file
+Notes on how they act:
+  1. every read is S
+  2. every write is m
+  3. every new or invalid variable is I
+  they do change on conditions which are handled in the code.
 */
+const char* Initialize_Invalid = "Initialize_Invalid";
+const char* Shared = "Shared";
+const char* Mine = "Mine";
+
+//===========================================================================================================================================================
 
 
+//is used to send messages to the bus regarding 3 case
+/*
+case 1 : when global variables are found.
+case 2 : when a read on global variable happens.
+case 3 : when a write on global variable happens.
+*/
+void SendToBus(const int clientsocketaddress, const char* message, const char* label)
+{
+  size_t length = strlen(message) + strlen(label)+1;
+  char* combinedmessage = (char*)malloc(length);
+
+  if(combinedmessage != NULL)
+  {
+    strcpy(combinedmessage, label);
+    strcat(combinedmessage, message);
+
+    const char* messagetoserver = combinedmessage;
+    size_t message_length = strlen(combinedmessage);
+    int bytes_sent = send(clientsocketaddress, messagetoserver, message_length, 0);
+    printf("bytes send %d \n\n",bytes_sent);
+
+    free(combinedmessage);
+  }
+}
+
+//checks if the given char* is a address or not since every address has 0x we expect this is address only if the string has 0x
 bool isaddress(char* address)
 {
   if(strstr(address, "0x") != NULL)
@@ -35,6 +70,11 @@ bool isaddress(char* address)
   }
 }
 
+/*
+trimtrailspaces: used to remove forward and backward spaces from a given line from file.
+returns: void, manipulates the parameter passed line.
+parameter: string line from the file
+*/
 void trimleadtrailspaces(char *line)
 {
     //if the entered line is null, return
@@ -290,10 +330,17 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         */
         if(FindInGlobalScope(container, command) != INT_MIN && firstlinedata)
         {
+          if(!InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Shared))
+          {
+            InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
+          }
           int value = FindInGlobalScope(container, command);
           char charvalue[10];
           sprintf(charvalue, "%d", value);
           PushIntoStack(stack, charvalue); //push it into stack
+          printf("\n\n");
+          printcontainers(container);
+          printf("\n\n");
         }
         else if((Beginevoked && !Callevoked) || (numberofbegins != numberofcalls)) // if only begin is encountered or n(begins) are more than n(calls)
         {
@@ -381,7 +428,17 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 
         if(FindInGlobalContainerbyaddress(container, address) != INT_MIN && firstlinedata)
         {
+          //updates the address to M as we write here
+          if(!InGlobalScopeIsItGivenStatus(container, address, Mine))
+          {
+            InGlobalScopeSetStatus(container, address, Mine);
+          }
           updateGlobalContainerbyaddress(container, address, value);
+
+          printf("\n\n");
+          printcontainers(container);
+          printf("\n\n");
+
           PopStack(stack);
         }
         //if the address is found in the container then we update it and pop it from stack else its error handling
@@ -508,16 +565,18 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, ".int") == 0 && firstlinedata)
       {
-        //testsend
-        send(clientsocketaddress, command, strlen(command), 0);
+        //send global variables to MemoryBus to let the Bus Know
+        const char* label = "GlobalVars: ";
+        SendToBus(clientsocketaddress, command, label);
 
         char* token = strtok(command, " ");
         while(token != NULL)
         {
           insertIntoContainer(container, token, 0); //initialize all global
+          InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, token), Initialize_Invalid);
           token = strtok(NULL, " ");
         }
-        // printcontainers(container);
+        printcontainers(container);
       }
       else if(strcmp(keyword, ".text") == 0 && firstlinedata)
       {
