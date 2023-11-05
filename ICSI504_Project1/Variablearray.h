@@ -16,5 +16,6 @@ void append(struct Stringarray* array, const char* data);
 char* atindex(struct Stringarray* array, int location);
 char* addressofdata(struct Stringarray* array, const char* data);
 char* addressofdatabyoffset(struct Stringarray* array, const char* address, const int offset);
+char* nameofvariablebyaddress(struct Stringarray* array, const char* address);
 void printarray(struct Stringarray* array);
 #endif

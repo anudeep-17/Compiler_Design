@@ -169,6 +169,15 @@ char* getaddressfromGlobalContainer(struct VariableContainer* container, const c
 	return addressofdata(&(container->variablenames[index]), variablename);
 }
 
+/*
+getnameof_variable_byaddress_fromGlobalContainer: gets the variable and returns address of the variable name from container
+*/
+char* getnameof_variable_byaddress_fromGlobalContainer(struct VariableContainer* container, const char* variableaddress)
+{
+	int index = 0;
+	return nameofvariablebyaddress(&(container->variablenames[index]), variableaddress);
+}
+
 // updateGlobalContainerbyaddress: takes a variable address and its value and updates the value in the map
 void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue)
 {

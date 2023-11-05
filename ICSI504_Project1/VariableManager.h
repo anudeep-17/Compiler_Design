@@ -45,4 +45,5 @@ char* getaddressfromGlobalContainer(struct VariableContainer* container, const c
 int FindInGlobalScope(struct VariableContainer* container, const char* variablename);
 void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue);
 int FindInGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress);
+char* getnameof_variable_byaddress_fromGlobalContainer(struct VariableContainer* container, const char* variableaddress);
 #endif

@@ -113,6 +113,20 @@ char* addressofdatabyoffset(struct Stringarray* array, const char* address, cons
     return NULL; // Return NULL to indicate that the address wasn't found or it was the last element
 }
 
+char* nameofvariablebyaddress(struct Stringarray* array, const char* address)
+{
+	for (int i = 0; i < Maxsize; i++)
+	{
+			char addr[20];
+			snprintf(addr, sizeof(addr), "%p", (void*)&(array->data[i])); // to check if the given address is this
+
+			if (strcmp(addr, address) == 0) // if that is the address and i is not at the last index
+			{
+				return array->data[i];
+			}
+	}
+	return NULL;
+}
 
 //----------------------------------testing purpose---------------------------------------------------------
 void printarray(struct Stringarray* array)

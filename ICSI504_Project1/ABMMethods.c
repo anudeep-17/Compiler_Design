@@ -28,7 +28,9 @@ Notes on how they act:
 const char* Initialize_Invalid = "Initialize_Invalid";
 const char* Shared = "Shared";
 const char* Mine = "Mine";
-
+const char* GlobalVars = "GlobalVars:";
+const char* Write = "Write:";
+const char* Read = "Read:";
 //===========================================================================================================================================================
 
 
@@ -38,23 +40,31 @@ case 1 : when global variables are found.
 case 2 : when a read on global variable happens.
 case 3 : when a write on global variable happens.
 */
-void SendToBus(const int clientsocketaddress, const char* message, const char* label)
+void SendToBus(const int clientsocketaddress, const char* message, const char* value, const char* label)
 {
-  size_t length = strlen(message) + strlen(label)+1;
-  char* combinedmessage = (char*)malloc(length);
+    size_t length = 1024;
+    char* combinedmessage = (char*)malloc(length);
 
-  if(combinedmessage != NULL)
-  {
-    strcpy(combinedmessage, label);
-    strcat(combinedmessage, message);
+    if(combinedmessage != NULL)
+    {
+      if(strcmp(label, GlobalVars) == 0)
+      {
+          snprintf(combinedmessage, length, "%s %s", label,message);
+      }
+      else if(strcmp(label, Write) == 0)
+      {
+          snprintf(combinedmessage, length, "%s %s,%s", label,message,value);
+      }
 
-    const char* messagetoserver = combinedmessage;
-    size_t message_length = strlen(combinedmessage);
-    int bytes_sent = send(clientsocketaddress, messagetoserver, message_length, 0);
-    printf("bytes send %d \n\n",bytes_sent);
+      const char* messagetoserver = combinedmessage;
+      size_t message_length = 1024;
+      int bytes_sent = send(clientsocketaddress, messagetoserver, message_length,0);
 
-    free(combinedmessage);
-  }
+      printf("bytes send %d \n\n",bytes_sent);
+
+
+      free(combinedmessage);
+    }
 }
 
 //checks if the given char* is a address or not since every address has 0x we expect this is address only if the string has 0x
@@ -179,6 +189,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         char* rightval = !isEmpty(stack) ? PopStack(stack) : "";
         char* leftval = !isEmpty(stack) ? PopStack(stack) : "";
         right = atoi(rightval);
+
         if(isaddress(leftval))
         {
           if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
@@ -334,6 +345,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           {
             InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
           }
+
           int value = FindInGlobalScope(container, command);
           char charvalue[10];
           sprintf(charvalue, "%d", value);
@@ -423,6 +435,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if (strcmp(keyword, ":=") == 0)// := -> gets address and a value from stack and puts the value in the address and pops both,
       {
+        char* valueforbus = PeekStack(stack);
         int value = !isEmpty(stack) ? atoi(PopStack(stack)) : 0; //gets the value
         char *address = !isEmpty(stack) ? PeekStack(stack) : NULL; //gets the address
 
@@ -431,13 +444,17 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           //updates the address to M as we write here
           if(!InGlobalScopeIsItGivenStatus(container, address, Mine))
           {
+            if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid))
+            {
+              SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
+            }
             InGlobalScopeSetStatus(container, address, Mine);
           }
           updateGlobalContainerbyaddress(container, address, value);
 
-          printf("\n\n");
-          printcontainers(container);
-          printf("\n\n");
+          // printf("\n\n");
+          // printcontainers(container);
+          // printf("\n\n");
 
           PopStack(stack);
         }
@@ -566,8 +583,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       else if(strcmp(keyword, ".int") == 0 && firstlinedata)
       {
         //send global variables to MemoryBus to let the Bus Know
-        const char* label = "GlobalVars: ";
-        SendToBus(clientsocketaddress, command, label);
+        SendToBus(clientsocketaddress, command, "0", GlobalVars);
 
         char* token = strtok(command, " ");
         while(token != NULL)

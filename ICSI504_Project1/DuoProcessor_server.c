@@ -66,15 +66,69 @@ void* StartExcecution_SignalReceiver(void *args)
   send(clientsocket, &startexecutionflag, sizeof(int), 0);
   while(1)
   {
-    char buffer[256];
+    char buffer[1024];
     bytes_received = recv(clientsocket, buffer, sizeof(buffer), 0);
     if(bytes_received > 0)
     {
-      buffer[bytes_received] = '\0';
+      // pthread_mutex_lock(&mutex);
+      // buffer[strlen(buffer)] = '\0';
+
       printf("recieved from client %d : %s and lenof buffer %ld \n\n", clientsocket, buffer, strlen(buffer));
 
+      char* token = strtok(buffer, ":");
+
       //locks the task on MemoryBus here.
-      // pthread_mutex_lock(&mutex);
+      if(token !=NULL)
+      {
+        if(strcmp(token, "GlobalVars") == 0)
+        {
+          token = strtok(NULL," ");
+          while(token != NULL)
+          {
+
+            printf("var: %s \n", token);
+
+            pthread_mutex_lock(&mutex);
+
+            if(FindInContainer(&MemoryBus, token) == INT_MIN)
+            {
+              printf("added var: %s \n", token);
+              insertIntoContainer(&MemoryBus, token, 0);
+            }
+
+            printcontainers(&MemoryBus);
+
+            pthread_mutex_unlock(&mutex);
+
+            token = strtok(NULL, " ");
+          }
+        }
+        else if(strcmp(token, "Write") == 0)
+        {
+          char* nameofvariable;
+          int value;
+          token = strtok(NULL,",");
+          token++;
+          //name of variable
+          nameofvariable = token;
+          printf("\n\n %s %ld \n\n", token, strlen(token));
+          token = strtok(NULL, ",");
+          value = atoi(token);
+          printf("\n\n %s %ld \n\n", token, strlen(token));
+
+          pthread_mutex_lock(&mutex);
+
+          if(FindInContainer(&MemoryBus, nameofvariable) != INT_MIN)
+          {
+            updateGlobalContainerbyaddress(&MemoryBus, getaddressfromGlobalContainer(&MemoryBus, nameofvariable), value);
+          }
+          printcontainers(&MemoryBus);
+
+          pthread_mutex_unlock(&mutex);
+        }
+      }
+
+
       // pthread_mutex_unlock(&mutex);
     }
   }
