@@ -1,0 +1,8 @@
+.data
+.int x
+show This file will write a value to x and never read it
+lvalue x
+push 10
+:=
+show Now check the test 2 and see if you see 10 there
+halt

@@ -182,13 +182,17 @@ char* getnameof_variable_byaddress_fromGlobalContainer(struct VariableContainer*
 void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue)
 {
 		int index = 0;
+		int countforrootvariable = 0;
+		const char** syncedaddressforroot = findinstancesthatsynced(&(container->variablevalues[index]),variableaddress, &countforrootvariable);
+
 		// printf("obtained variable address: %s, and its syncedaddress %s \n\n\n", variableaddress, findSyncedWith(&(container->variablevalues[index]), variableaddress));
+		// printf("else count of synced with: %d and its value at countainer is %d \n\n ", countforrootvariable, find(&(container->variablevalues[index]), findSyncedWith(&(container->variablevalues[index]), variableaddress)));
+
 		if(FindInGlobalContainerbyaddress(container, variableaddress) != -1)
 		{
 			insert(&(container->variablevalues[index]), variableaddress, variablevalue); // Map function insert handles this.
-
 			//=================================update the attached address on update the given address======================
-			if(strcmp(findSyncedWith(&(container->variablevalues[index]), variableaddress), "NO addr") != 0)
+			if(strcmp(findSyncedWith(&(container->variablevalues[index]), variableaddress), "NO addr") != 0 && (find(&(container->variablevalues[index]), findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN && find(&(container->variablevalues[index]), findSyncedWith(&(container->variablevalues[index]), variableaddress)) != variablevalue))
 			{
 				//if this variable is synced with any other address we update that address too
 				if(FindInGlobalContainerbyaddress(container,findSyncedWith(&(container->variablevalues[index]), variableaddress)) != INT_MIN)
@@ -198,7 +202,20 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 					InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
 				}
 			}
-
+			else if(countforrootvariable > 0)
+			{
+				printf("i did come here to change the synced addresss\n\n");
+				for(int i = 0; i< countforrootvariable; i++)
+				{
+					if(FindInGlobalContainerbyaddress(container,syncedaddressforroot[i]) != INT_MIN)
+					{
+						printf("syncedwith: %s\n\n", syncedaddressforroot[i]);
+						// insert(&(container->variablevalues[index]), syncedaddressforroot[i], variablevalue);
+						updateGlobalContainerbyaddress(container, syncedaddressforroot[i], variablevalue);
+						InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
+					}
+				}
+			}
 		}
 }
 //gets the variable address by a particular offset
@@ -217,8 +234,16 @@ void setSyncBetween(struct VariableContainer* container, const char* variableadd
 	// printf("address obtainer: %s, and address to sync with %s\n\n\n", variableaddress, addresstosyncwith);
 	//now use the index to setup the sync
 	InsertSyncedAddress(&(container->variablevalues[index]), variableaddress, addresstosyncwith);
-	// insert(&(container->variablevalues[index]), addresstosyncwith, find(&(container->variablevalues[index]), variableaddress));
-	// InsertStatus(&(container->variablevalues[index]), addresstosyncwith, "Mine");
+	//updates the value of the variable address to sync it with the given
+	updateGlobalContainerbyaddress(container, variableaddress, find(&(container->variablevalues[index]), addresstosyncwith));
+}
+
+void setSyncforbus(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith)
+{
+	int index = 0;
+	// printf("address obtainer: %s, and address to sync with %s\n\n\n", variableaddress, addresstosyncwith);
+	//now use the index to setup the sync
+	InsertSyncedAddress(&(container->variablevalues[index]), getaddressfromGlobalContainer(container, variableaddress), getaddressfromGlobalContainer(container, addresstosyncwith));
 }
 
 //works on setting status weather it is I, S, M
@@ -228,22 +253,29 @@ void InGlobalScopeSetStatus(struct VariableContainer* container, const char* var
 	InsertStatus(&(container->variablevalues[index]), variableaddress, status);
 }
 
+// gives the status of the variable
 char* InGlobalScopeFindStatus(struct VariableContainer* container, const char* variableaddress)
 {
 	int index = 0;
 	return findStatus(&(container->variablevalues[index]), variableaddress);
 }
-
+// checks the status of the variable
 bool InGlobalScopeIsItGivenStatus(struct VariableContainer* container, const char* variableaddress,const char* status)
 {
 	int index = 0;
 	return ifstatus(&(container->variablevalues[index]), variableaddress, status);
 }
-
+// gets all the synced variable address
 char* InGlobalScopeFindSyncedWith(struct VariableContainer* container, const char* variableaddress)
 {
 	int index = 0;
 	return findSyncedWith(&(container->variablevalues[index]), variableaddress);
+}
+// gets all the syncedup addresses.
+const char** InGlobalsFindSyncedInstances(struct VariableContainer* container, const char* variableaddress, int* count)
+{
+	int index = 0;
+	return findinstancesthatsynced(&(container->variablevalues[index]), variableaddress, count);
 }
 //================================================================================End of global methods =======================================================
 

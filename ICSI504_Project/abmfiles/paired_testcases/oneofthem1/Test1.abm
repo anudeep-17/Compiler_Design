@@ -1,0 +1,22 @@
+.data
+.int x f b
+.text
+show This file will write a values to x and f
+show this will have data race 
+lvalue x
+rvalue x
+push 1
++
+:=
+lvalue f
+rvalue f
+push 1
++
+:=
+lvalue b
+rvalue b
+push 1
++
+:=
+show results in 1 and 1
+halt

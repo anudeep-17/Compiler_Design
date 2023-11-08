@@ -1,0 +1,22 @@
+.data
+.int x f b
+.text
+show This file will read x and f
+show this will have data race
+label loop
+rvalue b
+gofalse loop
+label out
+lvalue p
+rvalue f
+:=
+lvalue q
+rvalue x
+:=
+rvalue p
+print
+pop
+rvalue q
+print
+pop
+halt

@@ -32,6 +32,8 @@ const char* GlobalVars = "GlobalVars:";
 const char* Write = "Write:";
 const char* Read = "Read:";
 const char* Changes = "Changes?:";
+const char* Sync = "Sync:";
+const char* End = "END:";
 //===========================================================================================================================================================
 
 //is used to send messages to the bus regarding 3 case
@@ -39,6 +41,8 @@ const char* Changes = "Changes?:";
 case 1 : when global variables are found.
 case 2 : when a read on global variable happens.
 case 3 : when a write on global variable happens.
+case 4: to synced
+case 5: to end
 */
 int SendToBus(const int clientsocketaddress, const char* message, const char* value, const char* label)
 {
@@ -63,6 +67,14 @@ int SendToBus(const int clientsocketaddress, const char* message, const char* va
       {
         snprintf(combinedmessage, length, "%s", label);
       }
+      else if(strcmp(label, Sync) == 0)
+      {
+        snprintf(combinedmessage, length, "%s %s %s", label, message, value);
+      }
+      else if(strcmp(label, End) == 0)
+      {
+        snprintf(combinedmessage, length, "%s", label);
+      }
 
       const char* messagetoserver = combinedmessage;
       size_t message_length = 1024;
@@ -76,6 +88,11 @@ int SendToBus(const int clientsocketaddress, const char* message, const char* va
     return 0;
 }
 
+// recieves signals from teh bus
+/*
+case 1; recieves all the changes and performs steps accordinghly.
+case 2: recieves rvalue of a variable.
+*/
 int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* container, const char* task)
 {
   char buffer[1024];
@@ -88,12 +105,13 @@ int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* cont
 
       if(strcmp(task, Changes) == 0)
       {
-        if(strstr(buffer,"NOCHANGES") == 0)
+        if(strcmp(buffer,"NOCHANGES") == 0)
         {
           break;
         }
         else
         {
+          // printf("\n\n changes recieved: %s \n\n\n", buffer);
           char* delimiter = ",";
           buffer[strlen(buffer)-1] = '\0';
           char* token = strtok(buffer, delimiter);
@@ -105,8 +123,8 @@ int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* cont
 
             if (sscanf(token, "%49s %49s", variable, status) == 2) {
                 // Process the extracted values (variable and status) as needed
-                printf("Variable: %s\n", variable);
-                printf("Status: %s\n", status);
+                // printf("Variable: %s\n", variable);
+                // printf("Status: %s\n", status);
 
                 if(FindInGlobalScope(container, variable) != INT_MIN)
                 {
@@ -228,7 +246,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
     initialize(&lastcontrol); //initializing the stack.
 
     int returnables = 0; //count of number of returnables in a begin and end that can be accessed from out of its scope.
-
     //iterates through all the keyword,command pairs that are read from file.
     for (int i = 0; i < pair->currentpairsize; i++)
     {
@@ -426,7 +443,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
             {
               SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
               value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
-              printf("recieved value %d\n\n", value);
+              // printf("recieved value %d\n\n", value);
               // put in container and make status S
               updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
               InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
@@ -437,9 +454,6 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           char charvalue[10];
           sprintf(charvalue, "%d", value);
           PushIntoStack(stack, charvalue); //push it into stack
-          printf("\n\n");
-          printcontainers(container);
-          printf("\n\n");
         }
         else if((Beginevoked && !Callevoked) || (numberofbegins != numberofcalls)) // if only begin is encountered or n(begins) are more than n(calls)
         {
@@ -529,25 +543,18 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         if(FindInGlobalContainerbyaddress(container, address) != INT_MIN && firstlinedata)
         {
           //updates the address to M as we write here
-          // if(!InGlobalScopeIsItGivenStatus(container, address, Mine))
-          // {
-          //   if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid))
-          //   {
-              SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-              char* syncedaddress = InGlobalScopeFindSyncedWith(container, address);
-              while(strcmp(syncedaddress, "NO addr") != 0)
-              {
-                SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, syncedaddress),valueforbus,Write);
-                syncedaddress = InGlobalScopeFindSyncedWith(container, syncedaddress);
-              }
+          if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid) || InGlobalScopeIsItGivenStatus(container, address, Shared))
+          {
+            SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
+            // char* syncedaddress = InGlobalScopeFindSyncedWith(container, address);
+            // while(strcmp(syncedaddress, "NO addr") != 0)
+            // {
+            //   SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, syncedaddress),valueforbus,Write);
+            //   syncedaddress = InGlobalScopeFindSyncedWith(container, syncedaddress);
             // }
-            InGlobalScopeSetStatus(container, address, Mine);
-          // }
+          }
+          InGlobalScopeSetStatus(container, address, Mine);
           updateGlobalContainerbyaddress(container, address, value);
-
-          printf("\n\n");
-          printcontainers(container);
-          printf("\n\n");
 
           PopStack(stack);
         }
@@ -656,7 +663,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         }
 
       }
-      else if(strcmp(keyword, "gotrue") == 0)// gofalse -> Pops top of stack and if it is non 0 then jumps to given target.
+      else if(strcmp(keyword, "gotrue") == 0)// gotrue -> Pops top of stack and if it is non 0 then jumps to given target.
       {
         char* temp = PopStack(stack);// pops stack
 
@@ -685,7 +692,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, token), Initialize_Invalid);
           token = strtok(NULL, " ");
         }
-        printcontainers(container);
+        // printcontainers(container);
       }
       else if(strcmp(keyword, ".text") == 0 && firstlinedata)
       {
@@ -693,6 +700,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       }
       else if(strcmp(keyword, "halt") == 0) // halt -> exit the excecution
       {
+        SendToBus(clientsocketaddress," ", "0",End);
         exit(0); //safe exit.
         return;
       }
@@ -704,7 +712,8 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 
         // now we need left address synced with right address.
         setSyncBetween(container, leftaddress, rightaddress);
-        printcontainers(container);
+        SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress),Sync);
+        InGlobalScopeSetStatus(container, leftaddress, Mine);
       }
    }
 }

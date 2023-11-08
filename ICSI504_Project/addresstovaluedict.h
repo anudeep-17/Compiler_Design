@@ -30,6 +30,7 @@ void InsertStatus(struct Map* map, const char* key, const char* status);
 int find(struct Map* map, const char* key);
 char* findSyncedWith(struct Map* map, const char* key);
 char* findStatus(struct Map* map, const char* key);
+const char** findinstancesthatsynced(struct Map* map, const char* key, int* countofaddresses);
 //===============================for status methods ===============================
 bool ifstatus(struct Map* map, const char* key, const char* status);
 char* StructureStringForSignal(struct Map* map, const int forclient);

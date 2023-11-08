@@ -47,4 +47,7 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 int FindInGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress);
 char* getnameof_variable_byaddress_fromGlobalContainer(struct VariableContainer* container, const char* variableaddress);
 char* InGlobalScopeFindSyncedWith(struct VariableContainer* container, const char* variableaddress);
+const char** InGlobalsFindSyncedInstances(struct VariableContainer* container, const char* variableaddress, int* count);
+void setSyncforbus(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith);
+void updateGlobalContainerbyaddressForBus(struct VariableContainer* container, const char* variableaddress, int variablevalue);
 #endif

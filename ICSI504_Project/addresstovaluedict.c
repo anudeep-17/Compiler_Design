@@ -114,6 +114,42 @@ char* findSyncedWith(struct Map* map, const char* key)
 	return "NO addr"; //else returns NULL
 }
 
+const char** findinstancesthatsynced(struct Map* map, const char* key, int* countofaddresses)
+{
+	if(key != NULL)
+	{
+		const char** result = NULL;
+		int resultCount = 0;
+
+		for(int i = 0; i<MaxMapsize; i++)
+		{
+			if(strcmp(map->Mapitems[i].syncedaddress, key) == 0)
+			{
+				result = realloc(result, (resultCount + 1) * sizeof(const char*));
+				result[resultCount] = map->Mapitems[i].address;
+        resultCount++;
+			}
+		}
+
+		if(resultCount> 0)
+		{
+			*countofaddresses = resultCount;
+			return result;
+		}
+		else
+		{
+			*countofaddresses = 0;
+			free(result);
+			return NULL;
+		}
+	}
+	else
+	{
+		*countofaddresses = 0;
+		return NULL;
+	}
+}
+
 
 /*
 findStatus: for given key address find its status and update the status.

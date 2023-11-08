@@ -68,16 +68,12 @@ void* StartExcecution_SignalReceiver(void *args)
   send(clientsocket, &startexecutionflag, sizeof(int), 0);
   while(1)
   {
+    // loops for ever listening to the client and waits until it ends.
     char buffer[1024];
     bytes_received = recv(clientsocket, buffer, sizeof(buffer), 0);
     if(bytes_received > 0)
     {
-      // pthread_mutex_lock(&mutex);
-      // buffer[strlen(buffer)] = '\0';
-      // if(strstr(buffer, "Changes?") == NULL)
-      // {
-        printf("recieved from client %d : %s and lenof buffer %ld \n\n", clientsocket, buffer, strlen(buffer));
-      // }
+      printf("recieved from client %d : %s and lenof buffer %ld \n\n", clientsocket, buffer, strlen(buffer));
       char* token = strtok(buffer, ":");
 
       //locks the task on MemoryBus here.
@@ -89,87 +85,133 @@ void* StartExcecution_SignalReceiver(void *args)
           while(token != NULL)
           {
 
-            printf("var: %s \n", token);
-
+            // printf("var: %s \n", token);
+            pthread_mutex_lock(&mutex);
             if(FindInContainer(&MemoryBus, token) == INT_MIN)
             {
-              pthread_mutex_lock(&mutex);
-              printf("added var: %s \n", token);
+              // printf("added var: %s \n", token);
               insertIntoContainer(&MemoryBus, token, 0);
-              pthread_mutex_unlock(&mutex);
             }
-            printcontainers(&MemoryBus);
+            pthread_mutex_unlock(&mutex);
+            // printcontainers(&MemoryBus);
+
+
             token = strtok(NULL, " ");
           }
         }
         else if(strcmp(token, "Write") == 0)
         {
+          // writes the value recieved from core to the variable container while locking it for establishing concurrency
           char* nameofvariable;
           int value;
           token = strtok(NULL,",");
           token++;
           //name of variable
           nameofvariable = token;
-          printf("\n\n %s\n\n", token);
+          // printf("\n\n %s\n\n", token);
           token = strtok(NULL, ",");
           value = atoi(token);
-          printf("\n\n %s\n\n", token);
-
+          // printf("\n\n %s\n\n", token);
 
           pthread_mutex_lock(&mutex);
-
           if(FindInContainer(&MemoryBus, nameofvariable) != INT_MIN)
           {
             updateGlobalContainerbyaddress(&MemoryBus, getaddressfromGlobalContainer(&MemoryBus, nameofvariable), value);
-            insert(&lastedited, nameofvariable, clientsocket);
-            InsertStatus(&lastedited, nameofvariable, "Initialize_Invalid");
-
             pthread_mutex_unlock(&mutex);
 
+            pthread_mutex_lock(&mutex);
+            insert(&lastedited, nameofvariable, clientsocket);
+            InsertStatus(&lastedited, nameofvariable, "Initialize_Invalid");
+            pthread_mutex_unlock(&mutex);
           }
-          printcontainers(&MemoryBus);
+          else
+          {
+            pthread_mutex_unlock(&mutex);
+          }
 
+          // printcontainers(&MemoryBus);
         }
         else if(strcmp(token, "Read") == 0)
         {
+            // reads the value recieved from core to the variable container while locking it for establishing concurrency and sends it to the core
             char* nameofvariable;
             int value;
 
             token = strtok(NULL, " ");
-            printf("\n\n %s \n\n", token);
+            // printf("\n\n %s \n\n", token);
             nameofvariable = token;
+            //locks the lastedited and unlocks once works is done
+            pthread_mutex_lock(&mutex);
+            insert(&lastedited, nameofvariable, clientsocket);
+            InsertStatus(&lastedited, nameofvariable, "Shared");
+            pthread_mutex_unlock(&mutex);
 
-            // pthread_mutex_lock(&mutex);
-
-            if(FindInContainer(&MemoryBus, nameofvariable) != INT_MIN)
+            int timeout = 0.4;
+            time_t starttime = time(NULL);
+            while(time(NULL) - starttime < timeout)
             {
-              value = FindInContainer(&MemoryBus, nameofvariable);
-              // send to the core the value it want.
-              char charval[10];
-              sprintf(charval, "%d", value);
-              send(clientsocket, charval, 10, 0);
-
-              insert(&lastedited, nameofvariable, clientsocket);
-              InsertStatus(&lastedited, nameofvariable, "Shared");
+                //locks the variable  and unlocks once works is done
+              pthread_mutex_lock(&mutex);
+              if(find(&lastedited, nameofvariable) != clientsocket)
+              {
+                pthread_mutex_unlock(&mutex);
+                break;
+              }
+              else
+              {
+                  pthread_mutex_unlock(&mutex);
+              }
             }
-            printf("%s : %d \n\n", nameofvariable, value);
+
+            pthread_mutex_lock(&mutex);
+            value = FindInContainer(&MemoryBus, nameofvariable);
+            pthread_mutex_unlock(&mutex);
+
+
+            // send to the core the value it want.
+            char charval[10];
+            sprintf(charval, "%d", value);
+            send(clientsocket, charval, 10, 0);
+
+            pthread_mutex_lock(&mutex);
+            insert(&lastedited, nameofvariable, clientsocket);
+            InsertStatus(&lastedited, nameofvariable, "Shared");
+            pthread_mutex_unlock(&mutex);
+
+            // printf("%s : %d \n\n", nameofvariable, value);
             // pthread_mutex_unlock(&mutex);
         }
         else if(strcmp(token, "Changes?") == 0)
         {
-
-            printf("%s\n", token);
-            printf("\n\n");
-
-            pthread_mutex_lock(&mutex);
+          // send the changes if any
             printMap(&lastedited);
-            pthread_mutex_unlock(&mutex);
-
             char sendtocore[1024];
             strcpy(sendtocore, StructureStringForSignal(&lastedited, clientsocket));
             send(clientsocket, sendtocore, 1024, 0);
+        }
+        else if(strcmp(token, "Sync") == 0)
+        {
+          // setup the sync between recieved variables
+         char variablethatwillsync[50];
+         char variableforsync[50];
 
+          token = strtok(NULL, " ");
+          printf("token 2:%s %s\n", token, getaddressfromGlobalContainer(&MemoryBus, token));
+          strcpy(variablethatwillsync, getaddressfromGlobalContainer(&MemoryBus, token));
 
+          token = strtok(NULL, " ");
+          printf("token 2:%s %s\n", token, getaddressfromGlobalContainer(&MemoryBus, token));
+          strcpy(variableforsync, getaddressfromGlobalContainer(&MemoryBus, token));
+
+          pthread_mutex_lock(&mutex);
+          printf("[%s], [%s] \n\n", variablethatwillsync, variableforsync);
+          setSyncBetween(&MemoryBus, variablethatwillsync, variableforsync);
+          printcontainers(&MemoryBus);
+          pthread_mutex_unlock(&mutex);
+        }
+        else if(strcmp(token, "END") == 0)
+        {
+          break;
         }
       }
 
@@ -183,6 +225,7 @@ void CloseConnections(const int clientsockets[], const int serverSocket, int num
 {
   if(numberofconnections == 1)
   {
+    //end both sockets
     close(clientsockets[0]);
     close(serverSocket);
     return;
@@ -239,8 +282,9 @@ int main()
     }
     else
     {
+      // after first client connectiosn waits for 15 secs and if no connection made will move on.
       struct timeval timeout;
-      timeout.tv_sec = 16;
+      timeout.tv_sec = 1;
       timeout.tv_usec = 0;
       fd_set readfds;
       FD_ZERO(&readfds);
@@ -254,6 +298,7 @@ int main()
       }
       else if (secondconnection > 0 && FD_ISSET(serverSocket, &readfds))
       {
+        // accepts second client and makes its thread.
         clientsockets[i] = accept(serverSocket,(struct sockaddr*) &clientAddress, &clientAddressLen);
         pthread_create(&threads[i] ,NULL, ConnectionHandler, &clientsockets[i]);
       }
@@ -270,8 +315,8 @@ int main()
     pthread_barrier_wait(&barrier); // Wait for both clients to reach this point
 
     printf("Both terminals are ready. Starting execution.\n");
-    printf("From client %d filename Recieved %s \n",1, filenames[0]);
-    printf("From client %d filename Recieved %s \n", 2, filenames[1]);
+    printf("From client %d filename Recieved %s \n",clientsockets[0], filenames[0]);
+    printf("From client %d filename Recieved %s \n",clientsockets[1], filenames[1]);
     //a global copy of clients.
     clients[0] = clientsockets[0];
     clients[1] = clientsockets[0];

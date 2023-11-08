@@ -1,0 +1,10 @@
+.data
+.int x
+show This file will read x
+show expecting the test1 to write the value by now
+show there can be data race leading to a zero here.
+rvalue x
+print
+pop
+show Now check the test 2 and see if you see 10 there
+halt

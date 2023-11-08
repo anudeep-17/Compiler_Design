@@ -1,0 +1,83 @@
+.data
+.int d1 d2 d3 temp
+.text
+show this will text :& and its correctness
+show -------------------------------------
+lvalue d1
+push 1
+:=
+lvalue d2
+push 2
+:=
+lvalue d3
+push 3
+:=
+show d1 = 1
+rvalue d1
+print
+pop
+show d2 = 2
+rvalue d2
+print
+pop
+show d3 = 3
+rvalue d3
+print
+pop
+show temp = 0
+rvalue temp
+print
+pop
+show -------------------------------------------
+show now we assign temp -> d1; d1 -> d2; d2 -> d3 and change d3 to 4 and print all togther to check
+lvalue temp
+lvalue d1
+:&
+lvalue d1
+lvalue d2
+:&
+lvalue d2
+lvalue d3
+:&
+show -----------------------------------------
+show after assigning all values every thing must have d3 now
+show d3
+rvalue d3
+print
+pop
+show d2
+rvalue d2
+print
+pop
+show d1
+rvalue d1
+print
+pop
+show temp
+rvalue temp 
+print
+pop
+lvalue d3
+rvalue d3
+push 1
++
+:=
+show -----------------------------------------
+show after updating d3 + 1
+show d3
+rvalue d3
+print
+pop
+show d2
+rvalue d2
+print
+pop
+show d1
+rvalue d1
+print
+pop
+show temp
+rvalue temp 
+print
+pop
+halt
