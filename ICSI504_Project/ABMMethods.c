@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+
 //Import statements for all the header files that are required.
 #include "ABMMethods.h"
 #include "IndexKeywordCommandPair.h"
@@ -15,7 +16,7 @@
 #include "Variablearray.h"
 #include "addresstovaluedict.h"
 #include "VariableManager.h"
-
+#include "CacheMemory.h"
 
 //status for global variables:
 /*
@@ -34,6 +35,7 @@ const char* Read = "Read:";
 const char* Changes = "Changes?:";
 const char* Sync = "Sync:";
 const char* End = "END:";
+
 //===========================================================================================================================================================
 
 //is used to send messages to the bus regarding 3 case
@@ -79,9 +81,6 @@ int SendToBus(const int clientsocketaddress, const char* message, const char* va
       const char* messagetoserver = combinedmessage;
       size_t message_length = 1024;
       int bytes_sent = send(clientsocketaddress, messagetoserver, message_length,0);
-
-      // printf("bytes send %d \n\n",bytes_sent);
-
 
       free(combinedmessage);
     }
@@ -160,6 +159,7 @@ int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* cont
   return Readresult;
 }
 
+
 //checks if the given char* is a address or not since every address has 0x we expect this is address only if the string has 0x
 bool isaddress(char* address)
 {
@@ -228,7 +228,7 @@ CharStack* stack: a empty stack to perform given commands.
 VariableContainer* container: contains the a 2d array that stores variablename, a map that stores variablename and its address for each variable basing on scope.
 Map* labellocations: contains all label line numbers collected while reading the file.
 */
-void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations, int clientsocketaddress)
+void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct VariableContainer* container, struct Map* labellocations, struct Map* globalConcecutiveVars, struct Cache* cacheMem, int clientsocketaddress)
 {
     //.data flag
     bool firstlinedata = false;
@@ -290,7 +290,20 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
           {
             //if left is address.
-            PushIntoStack(stack, getVariableaddressByOffset(container, leftval, -right));
+            // printf(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), -right)?"true\n":"false\n");
+
+            if(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), -right))
+            {
+              PushIntoStack(stack, getVariableaddressByOffset(container, leftval, -right));
+            }
+            else
+            {
+              printf("a non concecutive variable is called \n\n\n ");
+              SendToBus(clientsocketaddress," ", "0",End);
+              exit(0); //safe exit.
+              return;
+            }
+
           }
           else
           {
@@ -319,7 +332,20 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
           {
             //if left is address.
-            PushIntoStack(stack, getVariableaddressByOffset(container, leftval, right));
+            // printf(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), right)?"true\n":"false\n");
+
+            if(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), right))
+            {
+              PushIntoStack(stack, getVariableaddressByOffset(container, leftval, right));
+            }
+            else
+            {
+              printf("a non concecutive variable is called \n\n\n ");
+              SendToBus(clientsocketaddress," ", "0",End);
+              exit(0); //safe exit.
+              return;
+            }
+
           }
           else
           {
@@ -437,18 +463,46 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         if(FindInGlobalScope(container, command) != INT_MIN && firstlinedata)
         {
           int value = 0;
-          if(!InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Shared))
+          // if(!InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Shared))
+          // {
+          //   if(InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Initialize_Invalid))
+          //   {
+          //     SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
+          //     value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
+          //     // printf("recieved value %d\n\n", value);
+          //     // put in container and make status S
+          //     updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
+          //     InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
+          //   }
+          // }
+
+          if(FindInCache(cacheMem, command) != INT_MIN)
           {
-            if(InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Initialize_Invalid))
+            //cache hit and now we use the status do decide what to do.
+            if(strcmp(FindInCache_Status(cacheMem, command), Initialize_Invalid) == 0)
             {
               SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
               value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
-              // printf("recieved value %d\n\n", value);
-              // put in container and make status S
               updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-              InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
+              InsertCache(cacheMem, command, value, Shared);
+            }
+            else
+            {
+              updateInCacheTimeStamp(cacheMem, command);
             }
           }
+          else
+          {
+            //cache miss so we need it from bus.
+            SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
+            value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
+            updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
+            InsertCache(cacheMem, command, value, Shared);
+          }
+
+          printf("\n\n\n\n");
+          printCache(cacheMem);
+          printf("\n\n\n\n");
 
           value = FindInGlobalScope(container, command);
           char charvalue[10];
@@ -543,19 +597,37 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         if(FindInGlobalContainerbyaddress(container, address) != INT_MIN && firstlinedata)
         {
           //updates the address to M as we write here
-          if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid) || InGlobalScopeIsItGivenStatus(container, address, Shared))
+          // if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid) || InGlobalScopeIsItGivenStatus(container, address, Shared))
+          // {
+          //   SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
+          // }
+          // InGlobalScopeSetStatus(container, address, Mine);
+          if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)) != INT_MIN)
+          {
+            if(strcmp(FindInCache_Status(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)), Initialize_Invalid) == 0 ||
+               strcmp(FindInCache_Status(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)),Shared) == 0
+              )
+              {
+                SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
+                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
+              }
+              else
+              {
+                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
+              }
+          }
+          else
           {
             SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-            // char* syncedaddress = InGlobalScopeFindSyncedWith(container, address);
-            // while(strcmp(syncedaddress, "NO addr") != 0)
-            // {
-            //   SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, syncedaddress),valueforbus,Write);
-            //   syncedaddress = InGlobalScopeFindSyncedWith(container, syncedaddress);
-            // }
+            InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
           }
-          InGlobalScopeSetStatus(container, address, Mine);
-          updateGlobalContainerbyaddress(container, address, value);
 
+          printf("\n\n\n\n");
+          printCache(cacheMem);
+          printf("\n\n\n\n");
+
+
+          updateGlobalContainerbyaddress(container, address, value);
           PopStack(stack);
         }
         //if the address is found in the container then we update it and pop it from stack else its error handling
@@ -685,13 +757,23 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         //send global variables to MemoryBus to let the Bus Know
         SendToBus(clientsocketaddress, command, "0", GlobalVars);
 
+        char varnames[strlen(command)];
+        strcpy(varnames, command);
+
+        int countnumberofvars = 0;
         char* token = strtok(command, " ");
+
         while(token != NULL)
         {
           insertIntoContainer(container, token, 0); //initialize all global
           InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, token), Initialize_Invalid);
           token = strtok(NULL, " ");
+
+          countnumberofvars++;
         }
+
+        insert(globalConcecutiveVars, varnames, countnumberofvars);
+        // printMap(globalConcecutiveVars);
         // printcontainers(container);
       }
       else if(strcmp(keyword, ".text") == 0 && firstlinedata)
@@ -713,8 +795,15 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         // now we need left address synced with right address.
         setSyncBetween(container, leftaddress, rightaddress);
         SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress),Sync);
-        InGlobalScopeSetStatus(container, leftaddress, Mine);
+        // InGlobalScopeSetStatus(container, leftaddress, Mine);
+        InsertSyncedAddress_InCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
+        InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine);
+
+        printf("\n\n\n\n");
+        printCache(cacheMem);
+        printf("\n\n\n\n");
       }
+
    }
 }
 
@@ -742,6 +831,8 @@ void abminstructionrunner(int clientsocketaddress, FILE* abminstructionfile)
     struct Map labellocations; // to store label and its linenumber
     struct CharStack stack; // helper stack while running abmfile
     struct VariableContainer container; // VariableContainer to store variables basing on scope while running abmfile
+    struct Map globalConcecutiveVars; //for concecutive varibales checks
+    struct Cache cacheMem;
 
     int linenumber = 0; // line number counter
 
@@ -749,6 +840,8 @@ void abminstructionrunner(int clientsocketaddress, FILE* abminstructionfile)
     initializeMap(&labellocations);
   	initialize(&stack);
   	initializeContainer(&container);
+    initializeMap(&globalConcecutiveVars);
+    initializeCache(&cacheMem);
 
     //loops through each line of abminstructionfile
     while (fgets(Eachline, sizeof(Eachline), abminstructionfile) != NULL)
@@ -785,5 +878,5 @@ void abminstructionrunner(int clientsocketaddress, FILE* abminstructionfile)
       }
     }
     //calls abmwordhelp on to run all the keyword, command.
-    abmkeywordhelper(&pair, &stack, &container, &labellocations, clientsocketaddress);
+    abmkeywordhelper(&pair, &stack, &container, &labellocations, &globalConcecutiveVars, &cacheMem, clientsocketaddress);
 }

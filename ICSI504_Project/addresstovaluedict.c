@@ -4,6 +4,8 @@
 #include <limits.h>
 #include "addresstovaluedict.h"
 #include <stdbool.h>
+#include <time.h>
+
 /*
 Map: a basic key to value map
 */
@@ -21,6 +23,7 @@ void insert(struct Map* map, const char* key, int value)
           if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
           {
                   map->Mapitems[i].value = value;
+									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
 									return;
           }
   }
@@ -31,6 +34,7 @@ void insert(struct Map* map, const char* key, int value)
 		map->Mapitems[map->currentsize].value = value;
 		map->Mapitems[map->currentsize].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
 		map->Mapitems[map->currentsize].status[0] = '\0'; // null terminates status for now.
+		clock_gettime(CLOCK_REALTIME, &(map->Mapitems[map->currentsize].TimeStamp));  // adds current timestamp to the
 		map->currentsize++;
  	}
 
@@ -48,6 +52,7 @@ void InsertSyncedAddress(struct Map* map, const char* key, const char* syncaddre
           {
 									// printf("\n\n\n\ni was here to set the address \n\n\n\n");
                   strcpy(map->Mapitems[i].syncedaddress, syncaddress); //copy the given syncadd to map
+									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
 									return;
           }
   }
@@ -64,9 +69,51 @@ void InsertStatus(struct Map* map, const char* key, const char* status)
 					if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
 					{
 									strcpy(map->Mapitems[i].status, status); //copy the given status to map
+									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
 									return;
 					}
 	}
+}
+
+void InsertTimeStamp(struct Map* map, const char* key)
+{
+	for(int i = 0; i<MaxMapsize; i++)
+	{
+					if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
+					{
+						clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+						return;
+					}
+	}
+}
+
+void InsertIndexBased(struct Map* map, const char* key, const int value, const int index)
+{
+		if(index > -1)
+		{
+			strcpy(map->Mapitems[index].address, key); // replaces the key with the new key
+			map->Mapitems[index].value = value; // adds the value
+			clock_gettime(CLOCK_REALTIME, &(map->Mapitems[index].TimeStamp)); // adds current timestamp to the
+		}
+}
+
+
+int IndextoUpdateCache(struct Map* map)
+{
+	//to findout index with the oldes indexes.
+	 struct timespec oldestTimestamp = {.tv_sec = LONG_MAX, .tv_nsec = 0};
+	 int indexofoldest = -1;
+
+	 for (int i = 0; i < map->currentsize; i++)
+	 {
+			 if (map->Mapitems[i].TimeStamp.tv_sec < oldestTimestamp.tv_sec ||
+					(map->Mapitems[i].TimeStamp.tv_sec == oldestTimestamp.tv_sec && map->Mapitems[i].TimeStamp.tv_nsec < oldestTimestamp.tv_nsec))
+					 {
+							 oldestTimestamp = map->Mapitems[i].TimeStamp;
+							 indexofoldest = i;
+					 }
+	 }
+	 return indexofoldest;
 }
 
 /*
@@ -81,10 +128,53 @@ int find(struct Map* map, const char* key)
 			if(strcmp(map->Mapitems[i].address, key) == 0) //when the key match found we return its value
 			{
 				return map->Mapitems[i].value;
+				clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+
 			}
 		}
 	}
 	return INT_MIN; //else returns INT_MIN
+}
+
+bool isthere_aconcecutive(struct Map* map, const char* varname, int offset)
+{
+	if(varname != NULL)
+	{
+		for(int i = 0; i < MaxMapsize; i++)
+		{
+			char *result = strstr(map->Mapitems[i].address, varname);
+
+			if(result != NULL)
+			{
+				int counter = 0;
+				char buffer[strlen(map->Mapitems[i].address)];
+				strcpy(buffer, map->Mapitems[i].address);
+
+				char* token = strtok(buffer, " ");
+				while(token != NULL)
+				{
+					if(strcmp(token, varname) == 0)
+					{
+						counter++;
+						break;
+					}
+					token = strtok(NULL, " ");
+					counter++;
+				}
+				// printf("varname: %s, offset: %d, counter: %d \n\n", varname, offset, counter);
+				if(token != NULL && counter+offset <= find(map, map->Mapitems[i].address) && counter+offset > 0)
+				{
+					return true;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+		}
+	}
+	return false;
 }
 
 /*
@@ -165,6 +255,7 @@ char* findStatus(struct Map* map, const char* key)
 				if(strlen(map->Mapitems[i].status) > 0)
 				{
 					return map->Mapitems[i].status;
+					clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
 				}
 				else
 				{
@@ -230,11 +321,12 @@ char* StructureStringForSignal(struct Map* map, const int forclient)
 		return "NOCHANGES";
 	}
 }
+
 //-----------------------------------------------------------------for testing -----------------------------------------------------------------------------------
 void printMap(struct Map *map)
 {
     for (int i = 0; i < map->currentsize; i++)
 		{
-        printf("Address: %s, Value: %d, Syncedaddress: %s, Status: %s\n", map->Mapitems[i].address, map->Mapitems[i].value, map->Mapitems[i].syncedaddress,map->Mapitems[i].status);
+        printf("Address: %s, Value: %d, Syncedaddress: %s, Status: %s, TimeStamp: %ld.%09ld seconds \n", map->Mapitems[i].address, map->Mapitems[i].value, map->Mapitems[i].syncedaddress,map->Mapitems[i].status, map->Mapitems[i].TimeStamp.tv_sec, map->Mapitems[i].TimeStamp.tv_nsec);
     }
 }

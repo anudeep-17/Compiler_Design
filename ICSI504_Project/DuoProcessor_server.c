@@ -215,8 +215,6 @@ void* StartExcecution_SignalReceiver(void *args)
         }
       }
 
-
-      // pthread_mutex_unlock(&mutex);
     }
   }
 }

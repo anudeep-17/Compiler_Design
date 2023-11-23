@@ -204,12 +204,12 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 			}
 			else if(countforrootvariable > 0)
 			{
-				printf("i did come here to change the synced addresss\n\n");
+				// printf("i did come here to change the synced addresss\n\n");
 				for(int i = 0; i< countforrootvariable; i++)
 				{
 					if(FindInGlobalContainerbyaddress(container,syncedaddressforroot[i]) != INT_MIN)
 					{
-						printf("syncedwith: %s\n\n", syncedaddressforroot[i]);
+						// printf("syncedwith: %s\n\n", syncedaddressforroot[i]);
 						// insert(&(container->variablevalues[index]), syncedaddressforroot[i], variablevalue);
 						updateGlobalContainerbyaddress(container, syncedaddressforroot[i], variablevalue);
 						InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");

@@ -1,0 +1,48 @@
+.data
+.int d1 d2 d3
+.int temp
+.text
+show This test d1 next is d2 and then d2 next is d3
+show and fails when d3 next is called
+show 
+show ==============================================
+show now we add d1 + 1 => d2
+lvalue d1
+push 1
++
+push 10
+:=
+rvalue d2
+print
+pop
+show ===============================================
+show now we add d2 + 1 => d3
+lvalue d2
+push 1
++
+push 11
+:=
+rvalue d3
+print
+pop
+show ================================================
+show now we add d2 - 1 => d1
+lvalue d2
+push 1
+-
+push 11
+:=
+rvalue d1
+print
+pop
+show ================================================
+show now we add d3 + 1 => should break here
+lvalue d1
+push 3
++
+push 12
+:=
+print
+pop
+show ================================================
+halt
