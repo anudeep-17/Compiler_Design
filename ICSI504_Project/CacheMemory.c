@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <limits.h>
 #include "addresstovaluedict.h"
-
+#include "ABMMethods.h"
 
 void initializeCache(struct Cache* cacheMem)
 {
@@ -12,7 +12,7 @@ void initializeCache(struct Cache* cacheMem)
   initializeMap(&(cacheMem->CacheValues));
 }
 
-void InsertCache(struct Cache* cacheMem, const char* varname, const int value, const char* state)
+void InsertCache(struct Cache* cacheMem, const char* varname, const int value, const char* state, int clientSocketnumber)
 {
   if(find(&(cacheMem->CacheValues), varname) != INT_MIN)
   {
@@ -25,7 +25,7 @@ void InsertCache(struct Cache* cacheMem, const char* varname, const int value, c
 
     if(strcmp(findSyncedWith(&(cacheMem->CacheValues), varname), "NO addr") != 0 && (find(&(cacheMem->CacheValues), findSyncedWith(&(cacheMem->CacheValues), varname)) != value))
     {
-        InsertCache(cacheMem,findSyncedWith(&(cacheMem->CacheValues), varname), value, state);
+        InsertCache(cacheMem,findSyncedWith(&(cacheMem->CacheValues), varname), value, state, clientSocketnumber);
         InsertStatus(&(cacheMem->CacheValues), findSyncedWith(&(cacheMem->CacheValues), varname), state);
     }
     else if(countforrootvariable > 0)
@@ -34,7 +34,7 @@ void InsertCache(struct Cache* cacheMem, const char* varname, const int value, c
       {
         if(find(&(cacheMem->CacheValues),syncedaddressforroot[i]) != INT_MIN)
         {
-          InsertCache(cacheMem, syncedaddressforroot[i], value, state);
+          InsertCache(cacheMem, syncedaddressforroot[i], value, state, clientSocketnumber);
           InsertStatus(&(cacheMem->CacheValues), syncedaddressforroot[i], state);
         }
       }
@@ -51,6 +51,14 @@ void InsertCache(struct Cache* cacheMem, const char* varname, const int value, c
     }
     else
     {
+      int indextochange = IndextoUpdateCache(&(cacheMem->CacheValues));
+      struct addresstoval result = getFields_AtIndex(&(cacheMem->CacheValues), indextochange);
+      printf("%s - %d -- %s \n\n", result.address, result.value, result.status);
+
+      char charvalue[10];
+      sprintf(charvalue, "%d", result.value);
+      SendToBus(clientSocketnumber, result.address, charvalue, "Write:");
+
       InsertIndexBased(&(cacheMem->CacheValues), varname, value, IndextoUpdateCache(&(cacheMem->CacheValues)));
       InsertStatus(&(cacheMem->CacheValues), varname, state);
     }

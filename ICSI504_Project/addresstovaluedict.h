@@ -34,6 +34,7 @@ int find(struct Map* map, const char* key);
 char* findSyncedWith(struct Map* map, const char* key);
 char* findStatus(struct Map* map, const char* key);
 const char** findinstancesthatsynced(struct Map* map, const char* key, int* countofaddresses);
+struct addresstoval getFields_AtIndex(struct Map* map, const int index);
 //===============================for status methods ===============================
 bool ifstatus(struct Map* map, const char* key, const char* status);
 char* StructureStringForSignal(struct Map* map, const int forclient);

@@ -14,7 +14,7 @@ struct Cache
 void initializeCache(struct Cache* cacheMem);
 
 //===========================================INSERT=====================================================
-void InsertCache(struct Cache* cacheMem, const char* varname, const int value, const char* state);
+void InsertCache(struct Cache* cacheMem, const char* varname, const int value, const char* state, int clientSocketnumber);
 void InsertSyncedAddress_InCache(struct Cache* cacheMem, const char* leftname, const char* rightname);
 
 //===========================================FIND=======================================================

@@ -92,7 +92,7 @@ int SendToBus(const int clientsocketaddress, const char* message, const char* va
 case 1; recieves all the changes and performs steps accordinghly.
 case 2: recieves rvalue of a variable.
 */
-int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* container, const char* task)
+int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* container, struct Cache* cacheMem , const char* task)
 {
   char buffer[1024];
   int bytesrecieved = recv(clientsocketaddress, buffer, 1024, 0);
@@ -127,18 +127,20 @@ int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* cont
 
                 if(FindInGlobalScope(container, variable) != INT_MIN)
                 {
-                    if(strcmp(status, Shared) == 0 && strcmp(InGlobalScopeFindStatus(container, variable), Mine) == 0)
+                    if(strcmp(status, Shared) == 0 && (FindInCache(cacheMem, variable) != INT_MIN && strcmp(FindInCache_Status(cacheMem, variable), Mine) == 0))
                     {
                         //share your variable
                         char charvalue[10];
-                        sprintf(charvalue, "%d",FindInGlobalScope(container, variable));
+                        sprintf(charvalue, "%d", FindInCache(cacheMem, variable));
                         SendToBus(clientsocketaddress, variable,charvalue, Write);
-                        InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Shared);
+                        // InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Shared);
+                        updateInCacheState(cacheMem, variable, Shared);
                     }
-                    if(strcmp(status, Initialize_Invalid) == 0)
+                    if(strcmp(status, Initialize_Invalid) == 0 && FindInCache(cacheMem, variable) != INT_MIN)
                     {
                       //there should be a write call in bus so make ypur variable I
-                      InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Initialize_Invalid);
+                      // InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Initialize_Invalid);
+                      updateInCacheState(cacheMem, variable, Initialize_Invalid);
                     }
                 }
 
@@ -251,7 +253,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
     {
       //ask for changes in BUS for states
       SendToBus(clientsocketaddress," ","0",Changes);
-      ReceivefromBus(clientsocketaddress, container, Changes);
+      ReceivefromBus(clientsocketaddress, container,cacheMem, Changes);
 
       char *keyword = pair->Key_CommandPair[i].keyword; // stores the current keyword
       char *command = pair->Key_CommandPair[i].command; // stores current command
@@ -482,9 +484,9 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
             if(strcmp(FindInCache_Status(cacheMem, command), Initialize_Invalid) == 0)
             {
               SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
-              value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
+              value = ReceivefromBus(clientsocketaddress, container,cacheMem, Read); // get the value
               updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-              InsertCache(cacheMem, command, value, Shared);
+              InsertCache(cacheMem, command, value, Shared, clientsocketaddress);
             }
             else
             {
@@ -495,9 +497,9 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           {
             //cache miss so we need it from bus.
             SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
-            value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
+            value = ReceivefromBus(clientsocketaddress, container, cacheMem, Read); // get the value
             updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-            InsertCache(cacheMem, command, value, Shared);
+            InsertCache(cacheMem, command, value, Shared, clientsocketaddress);
           }
 
           printf("\n\n\n\n");
@@ -609,17 +611,17 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
               )
               {
                 SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
+                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
               }
               else
               {
-                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
+                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
               }
           }
           else
           {
             SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-            InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine);
+            InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
           }
 
           printf("\n\n\n\n");
@@ -797,7 +799,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress),Sync);
         // InGlobalScopeSetStatus(container, leftaddress, Mine);
         InsertSyncedAddress_InCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
-        InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine);
+        InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine, clientsocketaddress);
 
         printf("\n\n\n\n");
         printCache(cacheMem);

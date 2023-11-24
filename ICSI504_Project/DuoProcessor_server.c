@@ -282,7 +282,7 @@ int main()
     {
       // after first client connectiosn waits for 15 secs and if no connection made will move on.
       struct timeval timeout;
-      timeout.tv_sec = 1;
+      timeout.tv_sec = 15;
       timeout.tv_usec = 0;
       fd_set readfds;
       FD_ZERO(&readfds);

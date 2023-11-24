@@ -93,6 +93,8 @@ void InsertIndexBased(struct Map* map, const char* key, const int value, const i
 		{
 			strcpy(map->Mapitems[index].address, key); // replaces the key with the new key
 			map->Mapitems[index].value = value; // adds the value
+			map->Mapitems[map->currentsize].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
+
 			clock_gettime(CLOCK_REALTIME, &(map->Mapitems[index].TimeStamp)); // adds current timestamp to the
 		}
 }
@@ -114,6 +116,17 @@ int IndextoUpdateCache(struct Map* map)
 					 }
 	 }
 	 return indexofoldest;
+}
+
+struct addresstoval getFields_AtIndex(struct Map* map, const int index)
+{
+	struct addresstoval result;
+
+	if(index < map->currentsize)
+	{
+		result = map->Mapitems[index];
+	}
+	return result;
 }
 
 /*
