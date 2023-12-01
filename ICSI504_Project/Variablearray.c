@@ -51,7 +51,6 @@ void append(struct Stringarray* array, const char* data)
 /*
 atindex: takes a int and returns whats stored in that location.
 not used in abminstruction runner
-
 */
 char* atindex(struct Stringarray* array, int location)
 {

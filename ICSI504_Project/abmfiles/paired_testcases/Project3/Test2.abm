@@ -1,0 +1,63 @@
+.data
+.int temp d1 d2 d3
+.int x y z
+.text
+show This file is to test project 3 Cache.
+show -------------------for temp----------------------------
+label loop1
+rvalue temp
+push 1
+-
+gotrue loop1
+rvalue temp
+print
+pop
+show -------------------for d1----------------------------
+label loop2
+rvalue d1
+push 2
+-
+gotrue loop2
+rvalue d1
+print
+pop
+show -------------------for d2----------------------------
+label loop3
+rvalue d2
+push 3
+-
+gotrue loop3
+rvalue d2
+print
+pop
+show -------------------for d3--------------------------
+lvalue d3
+rvalue temp
+rvalue d1
+rvalue d2
++
++
+:=
+rvalue d3
+print
+pop
+show -------------------------------:& [x y z]------------------------
+show prints when temp becomes 6 because of other processor.
+lvalue x
+lvalue y
+:&
+lvalue y
+lvalue z
+:&
+lvalue z
+rvalue d3
+:=
+label loop4
+rvalue temp
+push 6
+-
+gotrue loop4
+rvalue x
+print
+pop
+halt

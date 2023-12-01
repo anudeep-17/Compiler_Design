@@ -178,7 +178,9 @@ char* getnameof_variable_byaddress_fromGlobalContainer(struct VariableContainer*
 	return nameofvariablebyaddress(&(container->variablenames[index]), variableaddress);
 }
 
-// updateGlobalContainerbyaddress: takes a variable address and its value and updates the value in the map
+/*
+updateGlobalContainerbyaddress: takes a variable address and its value and updates the value in the map
+*/
 void updateGlobalContainerbyaddress(struct VariableContainer* container, const char* variableaddress, int variablevalue)
 {
 		int index = 0;
@@ -199,7 +201,7 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 				{
 					//if in scope of global container
 					updateGlobalContainerbyaddress(container, findSyncedWith(&(container->variablevalues[index]), variableaddress), variablevalue);
-					InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
+					// InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
 				}
 			}
 			else if(countforrootvariable > 0)
@@ -212,7 +214,7 @@ void updateGlobalContainerbyaddress(struct VariableContainer* container, const c
 						// printf("syncedwith: %s\n\n", syncedaddressforroot[i]);
 						// insert(&(container->variablevalues[index]), syncedaddressforroot[i], variablevalue);
 						updateGlobalContainerbyaddress(container, syncedaddressforroot[i], variablevalue);
-						InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
+						// InGlobalScopeSetStatus(container,findSyncedWith(&(container->variablevalues[index]), variableaddress), "Mine");
 					}
 				}
 			}
@@ -236,14 +238,6 @@ void setSyncBetween(struct VariableContainer* container, const char* variableadd
 	InsertSyncedAddress(&(container->variablevalues[index]), variableaddress, addresstosyncwith);
 	//updates the value of the variable address to sync it with the given
 	updateGlobalContainerbyaddress(container, variableaddress, find(&(container->variablevalues[index]), addresstosyncwith));
-}
-
-void setSyncforbus(struct VariableContainer* container, const char* variableaddress, const char* addresstosyncwith)
-{
-	int index = 0;
-	// printf("address obtainer: %s, and address to sync with %s\n\n\n", variableaddress, addresstosyncwith);
-	//now use the index to setup the sync
-	InsertSyncedAddress(&(container->variablevalues[index]), getaddressfromGlobalContainer(container, variableaddress), getaddressfromGlobalContainer(container, addresstosyncwith));
 }
 
 //works on setting status weather it is I, S, M

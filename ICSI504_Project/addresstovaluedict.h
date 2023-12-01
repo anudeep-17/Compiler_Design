@@ -13,7 +13,7 @@ struct addresstoval
 	int value;
 	char syncedaddress[30];
 	char status[30];
-	struct timespec TimeStamp;
+  struct timespec lastUsedTime;
 };
 
 struct Map
@@ -28,19 +28,19 @@ void initializeMap(struct Map* map);
 void insert(struct Map* map, const char* key, int value);
 void InsertSyncedAddress(struct Map* map, const char* key, const char* syncaddress);
 void InsertStatus(struct Map* map, const char* key, const char* status);
-void InsertTimeStamp(struct Map* map, const char* key);
+void InsertBasingOnIndex(struct Map* map, const char* key, const int value, const int index);
+struct addresstoval atIndexInMap(struct Map* map, const int Index);
 //=========================find methods===========================================
 int find(struct Map* map, const char* key);
 char* findSyncedWith(struct Map* map, const char* key);
 char* findStatus(struct Map* map, const char* key);
 const char** findinstancesthatsynced(struct Map* map, const char* key, int* countofaddresses);
-struct addresstoval getFields_AtIndex(struct Map* map, const int index);
 //===============================for status methods ===============================
 bool ifstatus(struct Map* map, const char* key, const char* status);
 char* StructureStringForSignal(struct Map* map, const int forclient);
-//===============================TimeBased Methods=================================
-int IndextoUpdateCache(struct Map* map);
-void InsertIndexBased(struct Map* map, const char* key, const int value, const int index);
+//==================================time based methods ============================
+void InsertTimeStamp(struct Map* map, const char* key);
+int leastRecentlyUsedIndex(struct Map* map);
 //==================================test based methods ============================
 void printMap(struct Map *map);
 bool isthere_aconcecutive(struct Map* map, const char* varname, int offset);

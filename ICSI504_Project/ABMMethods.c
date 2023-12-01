@@ -92,7 +92,7 @@ int SendToBus(const int clientsocketaddress, const char* message, const char* va
 case 1; recieves all the changes and performs steps accordinghly.
 case 2: recieves rvalue of a variable.
 */
-int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* container, struct Cache* cacheMem , const char* task)
+int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* container, struct Cache* cacheMem, const char* task)
 {
   char buffer[1024];
   int bytesrecieved = recv(clientsocketaddress, buffer, 1024, 0);
@@ -122,35 +122,32 @@ int ReceivefromBus(const int clientsocketaddress, struct VariableContainer* cont
 
             if (sscanf(token, "%49s %49s", variable, status) == 2) {
                 // Process the extracted values (variable and status) as needed
-                // printf("Variable: %s\n", variable);
-                // printf("Status: %s\n", status);
 
+                // if a variable came with on and it is in FindInGlobalScope showing its existence in global scope
                 if(FindInGlobalScope(container, variable) != INT_MIN)
                 {
-                    if(strcmp(status, Shared) == 0 && (FindInCache(cacheMem, variable) != INT_MIN && strcmp(FindInCache_Status(cacheMem, variable), Mine) == 0))
-                    {
-                        //share your variable
-                        char charvalue[10];
-                        sprintf(charvalue, "%d", FindInCache(cacheMem, variable));
-                        SendToBus(clientsocketaddress, variable,charvalue, Write);
-                        // InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Shared);
-                        updateInCacheState(cacheMem, variable, Shared);
-                    }
-                    if(strcmp(status, Initialize_Invalid) == 0 && FindInCache(cacheMem, variable) != INT_MIN)
-                    {
-                      //there should be a write call in bus so make ypur variable I
-                      // InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, variable), Initialize_Invalid);
-                      updateInCacheState(cacheMem, variable, Initialize_Invalid);
-                    }
+                  if(strcmp(status, Shared) == 0 && strcmp(FindInCache_Status(cacheMem, variable), Mine) == 0) // if in cache and state is M and the requested state S
+                   {
+                       //share your variable with bus
+                       char charvalue[10];
+                       sprintf(charvalue, "%d",FindInGlobalScope(container, variable));
+                       SendToBus(clientsocketaddress, variable,charvalue, Write);
+                       updateInCacheState(cacheMem, variable, Shared);
+                   }
+                   if(strcmp(status, Initialize_Invalid) == 0) // if status is given as I then invalidate the varname.
+                   {
+                     //there should be a write call in bus so make ypur variable I
+                     updateInCacheState(cacheMem, variable, Initialize_Invalid);
+                   }
                 }
 
             }
-            token = strtok(NULL, delimiter);
+            token = strtok(NULL, delimiter); // move on with the rest of the variable.
           }
           break;
         }
       }
-      else if(strcmp(task, Read) == 0)
+      else if(strcmp(task, Read) == 0) // else if the recieve was for reading from bus then just read the value and return it.
       {
         Readresult = atoi(buffer);
         break;
@@ -253,12 +250,12 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
     {
       //ask for changes in BUS for states
       SendToBus(clientsocketaddress," ","0",Changes);
-      ReceivefromBus(clientsocketaddress, container,cacheMem, Changes);
+      ReceivefromBus(clientsocketaddress, container, cacheMem, Changes);
 
       char *keyword = pair->Key_CommandPair[i].keyword; // stores the current keyword
       char *command = pair->Key_CommandPair[i].command; // stores current command
 
-      // printf("keyword: %s, command: %s \n", keyword, command);
+      // printf("keyword: %s, command: %s \n\n", keyword, command);
       // we handle every possible keyword here.
       if(strcmp(keyword, "show") == 0) // show -> prints the argument entered with it.
       {
@@ -293,7 +290,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           {
             //if left is address.
             // printf(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), -right)?"true\n":"false\n");
-
+            // we will check if the given varname index + offset is legal expression or not, if it is legal then only we let it push else we safe exit the program,
             if(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), -right))
             {
               PushIntoStack(stack, getVariableaddressByOffset(container, leftval, -right));
@@ -334,8 +331,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
           if(FindInGlobalContainerbyaddress(container, leftval) != INT_MIN)
           {
             //if left is address.
-            // printf(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), right)?"true\n":"false\n");
-
+            // we will check if the given varname index + offset is legal expression or not, if it is legal then only we let it push else we safe exit the program,
             if(isthere_aconcecutive(globalConcecutiveVars, getnameof_variable_byaddress_fromGlobalContainer(container, leftval), right))
             {
               PushIntoStack(stack, getVariableaddressByOffset(container, leftval, right));
@@ -462,49 +458,78 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
             2.if Begin & Call is/are evoked then we should only have access to current scope to find given variable.
             3.Mathamatically everytime ** n(begin) > n(call) **  we can access the scope above current and find a variable else NO
         */
+
         if(FindInGlobalScope(container, command) != INT_MIN && firstlinedata)
         {
+          // printf("did come here in to read \n\n");
           int value = 0;
-          // if(!InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Shared))
-          // {
-          //   if(InGlobalScopeIsItGivenStatus(container, getaddressfromGlobalContainer(container, command), Initialize_Invalid))
-          //   {
-          //     SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
-          //     value = ReceivefromBus(clientsocketaddress, container, Read); // get the value
-          //     // printf("recieved value %d\n\n", value);
-          //     // put in container and make status S
-          //     updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-          //     InGlobalScopeSetStatus(container, getaddressfromGlobalContainer(container, command), Shared);
-          //   }
-          // }
+          /*
+            so when we want to read a variable there are two primary cases
+            1. In Cache:
+                Now this has two more cases,
+                a. the given Varname is in I : we read from Bus and update the value
+                b. the given varname is in S/M : we read from Cache directly and move forward in code,
+            2. Not In Cache:
+                here we are supposed to read from BUS any way as we dont have the value
+                Now after reading when we insert in Cache we have two cases
+                a. the variable is previously synced with other variable : insert the variable in cache with synced address
+                b. the variable is standalone: insert the variable only.
+          */
 
+          //===================================================================For Cache =========================================================
+          // printf("in Cache the value of %s is %d\n\n", command, FindInCache(cacheMem, command));
           if(FindInCache(cacheMem, command) != INT_MIN)
           {
-            //cache hit and now we use the status do decide what to do.
+            //----------------------exists in Cache
             if(strcmp(FindInCache_Status(cacheMem, command), Initialize_Invalid) == 0)
             {
+              // printf("I did come here to read %s", command);
+              // in state I
               SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
-              value = ReceivefromBus(clientsocketaddress, container,cacheMem, Read); // get the value
+              value = ReceivefromBus(clientsocketaddress, container, cacheMem, Read); // get the value
               updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-              InsertCache(cacheMem, command, value, Shared, clientsocketaddress);
+              InsertInCache(cacheMem, command, value, Shared, clientsocketaddress);
             }
             else
             {
-              updateInCacheTimeStamp(cacheMem, command);
+              //in state S or M
+               updateInCacheTimeStamp(cacheMem, command);
             }
           }
           else
           {
-            //cache miss so we need it from bus.
+            // ----------------------is not in Cache
             SendToBus(clientsocketaddress,command,"0",Read); // send a request to read to bus
             value = ReceivefromBus(clientsocketaddress, container, cacheMem, Read); // get the value
             updateGlobalContainerbyaddress(container, getaddressfromGlobalContainer(container, command), value);
-            InsertCache(cacheMem, command, value, Shared, clientsocketaddress);
+            if(strcmp(InGlobalScopeFindSyncedWith(container, getaddressfromGlobalContainer(container, command)), "NO addr") != 0)
+            {
+              //------------------- if there is a synced address to it in Global scope
+              InsertInCache(cacheMem, command, value, Shared,clientsocketaddress);
+              InsertSyncedAddress_InCache(cacheMem, command, getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, getaddressfromGlobalContainer(container, command))));
+              //to maintain the syncing of values in Cache
+              if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container,InGlobalScopeFindSyncedWith(container, getaddressfromGlobalContainer(container, command)))) != INT_MIN)
+              {
+                // if the synced address is in Cache else nothing needs to be changed.
+                  InsertInCache(cacheMem, command, value, Shared,clientsocketaddress);
+              }
+            }
+            else
+            {
+              //------ if there isnt any variable to sync just add it .
+              InsertInCache(cacheMem, command, value, Shared,clientsocketaddress);
+            }
+            // 
+            // printf("after reading: %s, %d \n\n", command, value);
+            // printCache(cacheMem);
+            // printf("\n\n");
+
+
           }
 
-          printf("\n\n\n\n");
-          printCache(cacheMem);
-          printf("\n\n\n\n");
+          // printf("after reading: %s, %d \n\n", command, value);
+          // printCache(cacheMem);
+          // printf("\n\n");
 
           value = FindInGlobalScope(container, command);
           char charvalue[10];
@@ -598,39 +623,95 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
 
         if(FindInGlobalContainerbyaddress(container, address) != INT_MIN && firstlinedata)
         {
-          //updates the address to M as we write here
-          // if(InGlobalScopeIsItGivenStatus(container, address, Initialize_Invalid) || InGlobalScopeIsItGivenStatus(container, address, Shared))
-          // {
-          //   SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-          // }
-          // InGlobalScopeSetStatus(container, address, Mine);
-          if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)) != INT_MIN)
-          {
-            if(strcmp(FindInCache_Status(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)), Initialize_Invalid) == 0 ||
-               strcmp(FindInCache_Status(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, address)),Shared) == 0
-              )
-              {
-                SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
-              }
-              else
-              {
-                InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
-              }
-          }
-          else
-          {
-            SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
-            InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, address), value, Mine, clientsocketaddress);
-          }
 
-          printf("\n\n\n\n");
-          printCache(cacheMem);
-          printf("\n\n\n\n");
+          /*
+          So if the variable address we want to write in on GlobalVars then no we have two possible outer cases
+          1. It is In cache:
+              Now if it is in cache this will have two other inner cases, after sending a bus signal if the given Varname is in state S or I in cache
+              a.the varname have a synced address
+                  if the varname have a synced address have the final layer of two cases,
 
+                  i. the synced address is also in Cache : Just Insert into the cache as the InsertInCache method will auto handle this,
+                  ii. the synced address is not in Cache: not technically possible but still handled.
+
+              b.the varname dont have a synced address :  just insert the new value with state M for the given variable name.
+
+          2. It is not In cache:
+              Now if it not in Cache we will ofcourse send to bus that there is a write but then we check if there is any synced variable for this.
+              and accordingly we handle it by Inserting the Value.
+          */
 
           updateGlobalContainerbyaddress(container, address, value);
           PopStack(stack);
+
+          //==================================================for Cache==============================================
+          char* varname = getnameof_variable_byaddress_fromGlobalContainer(container, address);
+          if(FindInCache(cacheMem, varname) != INT_MIN)
+          {
+            //---------------- the varname is in Cache.
+            char* statusinCache = FindInCache_Status(cacheMem, varname); //status of cache.
+            //--------------------------- Bus signal -------------------------------------------
+            if(strcmp(statusinCache, Shared) == 0 || strcmp(statusinCache, Initialize_Invalid) == 0)
+            {
+                SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address),valueforbus,Write);
+            }
+
+            //for inserting it into Cache.
+            if(strcmp(InGlobalScopeFindSyncedWith(container, address), "NO addr") != 0)
+            {
+              // ---------------if there is a synced address.
+              if(strcmp(getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address)),FindInCache_SyncedWith(cacheMem, varname)) == 0 || FindInCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address))) != INT_MIN)
+              {
+                // if it is already in cache.
+                InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+              }
+              else
+              {
+                // if there exists a synced address and it is not in cache. -- not possible as :& also handles this.
+                InsertSyncedAddress_InCache(cacheMem, varname, getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address)));
+                InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+              }
+            }
+            else
+            {
+              // no synced address for the given variable
+              InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+            }
+
+
+          }
+          else
+          {
+            //-------------------------------------------------Bus Signal ---------------------------------------------------------------
+            SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, address), valueforbus, Write);
+
+            //------------------varname is not in Cache.
+            if(strcmp(InGlobalScopeFindSyncedWith(container, address), "NO addr") != 0)
+            {
+              // there exist a synced address for this variable.
+              InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+              InsertSyncedAddress_InCache(cacheMem, varname, getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address)));
+              if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address))) != INT_MIN)
+              {
+                InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+              }
+              else
+              {
+                InsertSyncedAddress_InCache(cacheMem, varname, getnameof_variable_byaddress_fromGlobalContainer(container, InGlobalScopeFindSyncedWith(container, address)));
+                InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+              }
+            }
+            else
+            {
+              // there is no address in sync with this.
+              InsertInCache(cacheMem, varname, value, Mine,clientsocketaddress);
+            }
+          }
+
+          // printf("after writing: %s, %d \n\n", getnameof_variable_byaddress_fromGlobalContainer(container, address), value);
+          // printCache(cacheMem);
+          // printf("\n\n");
+
         }
         //if the address is found in the container then we update it and pop it from stack else its error handling
         else if (FindInContainerbyaddress(container, address) != INT_MIN)
@@ -741,7 +822,7 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
       {
         char* temp = PopStack(stack);// pops stack
 
-        if(strcmp(temp, "0") != 0)// if it is 0
+        if(strcmp(temp, "0") != 0)// if it isnt 0
         {
           char key[100]= "";
           strcat(strcat(strcat(key, "label"), " "), command);
@@ -798,12 +879,32 @@ void abmkeywordhelper(struct Pair* pair, struct CharStack* stack, struct Variabl
         setSyncBetween(container, leftaddress, rightaddress);
         SendToBus(clientsocketaddress, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress),Sync);
         // InGlobalScopeSetStatus(container, leftaddress, Mine);
-        InsertSyncedAddress_InCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
-        InsertCache(cacheMem,getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine, clientsocketaddress);
 
-        printf("\n\n\n\n");
-        printCache(cacheMem);
-        printf("\n\n\n\n");
+        // ========================================= cache setup for :& ===============================================
+
+        // if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress)) != INT_MIN && FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress)) != INT_MIN)
+        // {
+        //   InsertSyncedAddress_InCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
+        //   InsertInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine,clientsocketaddress);
+        // }
+        // else if(FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress)) != INT_MIN && FindInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress)) == INT_MIN)
+        // {
+        //   InsertInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine,clientsocketaddress);
+        //   InsertSyncedAddress_InCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
+        // }
+        // else
+        // {
+          InsertInCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), FindInGlobalContainerbyaddress(container, rightaddress), Mine,clientsocketaddress);
+          // printf("after Inserting before syncing \n\n\n");
+          // printCache(cacheMem);
+          // printf("\n\n\n\n");
+
+          InsertSyncedAddress_InCache(cacheMem, getnameof_variable_byaddress_fromGlobalContainer(container, leftaddress), getnameof_variable_byaddress_fromGlobalContainer(container, rightaddress));
+        // }
+
+        // printf("after syncing \n\n\n");
+        // printCache(cacheMem);
+        // printf("\n\n\n\n");
       }
 
    }

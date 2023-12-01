@@ -1,0 +1,56 @@
+.data
+.int temp d1 d2 d3
+.int x y z
+.text
+show This file is to test project 3 Cache.
+show ---------------------------for temp---------------------------------------
+lvalue temp
+push 1
+:=
+rvalue temp
+print
+pop
+show ---------------------------for d1---------------------------------------
+lvalue d1
+push 2
+:=
+rvalue d1
+print
+pop
+show ---------------------------for d2---------------------------------------
+lvalue d2
+push 3
+:=
+rvalue d2
+print
+pop
+show ---------------------------for d3---------------------------------------
+label loop
+rvalue d3
+push 6
+-
+gotrue loop
+rvalue d3
+print
+pop
+show ---------------------------Syncing using :& [temp d1 d2 d3 ]--------------------------------------
+show prints only when x = 6 from other processor
+lvalue temp
+lvalue d1
+:&
+lvalue d1
+lvalue d2
+:&
+lvalue d2
+lvalue d3
+:&
+label loop2
+rvalue x
+push 6
+-
+gotrue loop2
+rvalue temp
+print
+pop
+show-----------------------------------------------------------------------------------
+halt

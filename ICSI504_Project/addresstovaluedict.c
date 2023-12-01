@@ -1,4 +1,4 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -23,7 +23,8 @@ void insert(struct Map* map, const char* key, int value)
           if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
           {
                   map->Mapitems[i].value = value;
-									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+									clock_gettime(CLOCK_MONOTONIC, &map->Mapitems[i].lastUsedTime); // updates the usage time.
+									// printf("%s: %ld seconds, %ld nanoseconds\n", key, map->Mapitems[i].lastUsedTime.tv_sec, map->Mapitems[i].lastUsedTime.tv_nsec);
 									return;
           }
   }
@@ -34,7 +35,7 @@ void insert(struct Map* map, const char* key, int value)
 		map->Mapitems[map->currentsize].value = value;
 		map->Mapitems[map->currentsize].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
 		map->Mapitems[map->currentsize].status[0] = '\0'; // null terminates status for now.
-		clock_gettime(CLOCK_REALTIME, &(map->Mapitems[map->currentsize].TimeStamp));  // adds current timestamp to the
+		clock_gettime(CLOCK_MONOTONIC, &map->Mapitems[map->currentsize].lastUsedTime); // inserts time to the variable
 		map->currentsize++;
  	}
 
@@ -52,7 +53,7 @@ void InsertSyncedAddress(struct Map* map, const char* key, const char* syncaddre
           {
 									// printf("\n\n\n\ni was here to set the address \n\n\n\n");
                   strcpy(map->Mapitems[i].syncedaddress, syncaddress); //copy the given syncadd to map
-									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+									clock_gettime(CLOCK_MONOTONIC, &map->Mapitems[i].lastUsedTime);// updates the usage time.
 									return;
           }
   }
@@ -69,65 +70,85 @@ void InsertStatus(struct Map* map, const char* key, const char* status)
 					if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
 					{
 									strcpy(map->Mapitems[i].status, status); //copy the given status to map
-									clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+									clock_gettime(CLOCK_MONOTONIC, &map->Mapitems[i].lastUsedTime); // updates the usage time.
 									return;
 					}
 	}
 }
 
+
+/*
+InsertTimeStamp: takes map and key in the map and if the key is found we update the timetakes map and key in the map and if the key is found we update the timev
+*/
 void InsertTimeStamp(struct Map* map, const char* key)
 {
-	for(int i = 0; i<MaxMapsize; i++)
+	for(int i = 0; i<MaxMapsize; i++) // searches the map
 	{
 					if(strcmp(map->Mapitems[i].address, key) == 0) // a instance where key is already in the map then we update the value only.
 					{
-						clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
-						return;
+								clock_gettime(CLOCK_MONOTONIC, &map->Mapitems[i].lastUsedTime); // updates the usage time.
+								return;
 					}
 	}
 }
 
-void InsertIndexBased(struct Map* map, const char* key, const int value, const int index)
+/*
+InsertBasingOnIndex: so this is for cache memeory specially as in cache we have to replace the least reused item with the new item so we use this to repalce the index of least reused with the new item.
+parameters: map, key, value, index.
+*/
+void InsertBasingOnIndex(struct Map* map, const char* key, const int value, const int index)
 {
-		if(index > -1)
+	if(index > -1) // if index is not -1.
 		{
 			strcpy(map->Mapitems[index].address, key); // replaces the key with the new key
 			map->Mapitems[index].value = value; // adds the value
-			map->Mapitems[map->currentsize].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
-
-			clock_gettime(CLOCK_REALTIME, &(map->Mapitems[index].TimeStamp)); // adds current timestamp to the
+			map->Mapitems[index].syncedaddress[0] = '\0'; //null terminated as there isnt any given address for now.
+			map->Mapitems[index].status[0] = '\0'; // null terminates status for now.
+			clock_gettime(CLOCK_MONOTONIC, &(map->Mapitems[index].lastUsedTime)); // adds current timestamp to the
 		}
 }
 
-
-int IndextoUpdateCache(struct Map* map)
+// atIndexInMap: at teh provided index we return the attributes we have in that index.
+struct addresstoval atIndexInMap(struct Map* map, const int index)
 {
-	//to findout index with the oldes indexes.
-	 struct timespec oldestTimestamp = {.tv_sec = LONG_MAX, .tv_nsec = 0};
-	 int indexofoldest = -1;
+	return map->Mapitems[index]; //  we return all the components that belong to this index.
+}
 
-	 for (int i = 0; i < map->currentsize; i++)
-	 {
-			 if (map->Mapitems[i].TimeStamp.tv_sec < oldestTimestamp.tv_sec ||
-					(map->Mapitems[i].TimeStamp.tv_sec == oldestTimestamp.tv_sec && map->Mapitems[i].TimeStamp.tv_nsec < oldestTimestamp.tv_nsec))
-					 {
-							 oldestTimestamp = map->Mapitems[i].TimeStamp;
-							 indexofoldest = i;
-					 }
+// compareTimes: used to compare two timespec times of two variables to findout which one is the oldes -- least reasused component time comparision function
+int compareTimes(struct timespec time1, struct timespec time2) {
+    if (time1.tv_sec < time2.tv_sec) {
+        return -1;  // time1 is earlier
+    } else if (time1.tv_sec > time2.tv_sec) {
+        return 1;   // time2 is earlier
+    } else {
+        // seconds are equal, compare nanoseconds
+        if (time1.tv_nsec < time2.tv_nsec) {
+            return -1;  // time1 is earlier
+        } else if (time1.tv_nsec > time2.tv_nsec) {
+            return 1;   // time2 is earlier
+        } else {
+            return 0;   // both times are equal
+        }
+    }
+}
+
+// leastRecentlyUsedIndex : from the given map we search for the oldes lastUsedTime and return that index to replace next.
+int leastRecentlyUsedIndex(struct Map* map)
+{
+	int lruIndex = 0; // lru index is initially zero such that we assume that the first is oldest,
+	 struct timespec lruTime = map->Mapitems[0].lastUsedTime; // we extract first index time.
+
+	 for (int i = 1; i < map->currentsize; i++) {
+		 // if the lastUsedTime is less than lruTime then this is the oldest so replace the index and lruTime and check if there are any more oldest.
+			 if (compareTimes(map->Mapitems[i].lastUsedTime, lruTime) < 0) {
+					 lruTime = map->Mapitems[i].lastUsedTime;
+					 lruIndex = i;
+			 }
 	 }
-	 return indexofoldest;
+	 return lruIndex; // return the index so we can replace that.
 }
 
-struct addresstoval getFields_AtIndex(struct Map* map, const int index)
-{
-	struct addresstoval result;
 
-	if(index < map->currentsize)
-	{
-		result = map->Mapitems[index];
-	}
-	return result;
-}
 
 /*
 find: finds the given key in map and returns its value.
@@ -141,42 +162,52 @@ int find(struct Map* map, const char* key)
 			if(strcmp(map->Mapitems[i].address, key) == 0) //when the key match found we return its value
 			{
 				return map->Mapitems[i].value;
-				clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
-
 			}
 		}
 	}
 	return INT_MIN; //else returns INT_MIN
 }
 
+/*
+isthere_aconcecutive : this is made to use for concecutive check thats
+											 if a variable x is encountered such that x+offset is requested we check if there exists any thing next to x with the given offset
+											 this method will verify this and confirm existence of variables in concecution
+*/
 bool isthere_aconcecutive(struct Map* map, const char* varname, int offset)
 {
-	if(varname != NULL)
+	if(varname != NULL) // if varname is not null,
 	{
-		for(int i = 0; i < MaxMapsize; i++)
+		for(int i = 0; i < MaxMapsize; i++) // we loop throug the map
 		{
-			char *result = strstr(map->Mapitems[i].address, varname);
+			char *result = strstr(map->Mapitems[i].address, varname); // takes the varname and check if it exist in the current key, if it does then we move ahead
 
+			/*
+			we not loop through this index breaking the char* by " " and see what is the position of this varname
+			then after retreiving the position number of varname we add/sub the offset and check if it falls under the length of variable or not.
+			if it does we return true
+			else fasle;
+			*/
 			if(result != NULL)
 			{
 				int counter = 0;
 				char buffer[strlen(map->Mapitems[i].address)];
 				strcpy(buffer, map->Mapitems[i].address);
 
-				char* token = strtok(buffer, " ");
+				char* token = strtok(buffer, " "); // break the string for each space.
 				while(token != NULL)
 				{
 					if(strcmp(token, varname) == 0)
 					{
-						counter++;
+						counter++; // we get the count of the variable in the char* to figure out if tehre exists any thing in the range of offset.
 						break;
 					}
 					token = strtok(NULL, " ");
 					counter++;
 				}
 				// printf("varname: %s, offset: %d, counter: %d \n\n", varname, offset, counter);
-				if(token != NULL && counter+offset <= find(map, map->Mapitems[i].address) && counter+offset > 0)
+				if(token != NULL && counter+offset <= find(map, map->Mapitems[i].address) && counter+offset > 0) // if token != NULL which specifies that its not point to the end of char*, counter+offset < the total available variables and greater than 0
 				{
+					// if this is the case return true.
 					return true;
 				}
 				else
@@ -217,6 +248,10 @@ char* findSyncedWith(struct Map* map, const char* key)
 	return "NO addr"; //else returns NULL
 }
 
+/*
+findinstancesthatsynced: this is will findout if givenm key is in some other variable synced address and return a 2D with variables that have this key as synced address
+												 this is used to update the values if somevariables are synced.
+*/
 const char** findinstancesthatsynced(struct Map* map, const char* key, int* countofaddresses)
 {
 	if(key != NULL)
@@ -226,21 +261,24 @@ const char** findinstancesthatsynced(struct Map* map, const char* key, int* coun
 
 		for(int i = 0; i<MaxMapsize; i++)
 		{
+			// so we check if the key is in any of the synced address we add it to the dynamic array which expands basing on number of values
 			if(strcmp(map->Mapitems[i].syncedaddress, key) == 0)
 			{
-				result = realloc(result, (resultCount + 1) * sizeof(const char*));
-				result[resultCount] = map->Mapitems[i].address;
+				result = realloc(result, (resultCount + 1) * sizeof(const char*)); // decides the size
+				result[resultCount] = map->Mapitems[i].address; // adds new element.
         resultCount++;
 			}
 		}
 
+		// if result is greater than 0 we update the passed reference address with count so we can run the loop for that count.
 		if(resultCount> 0)
 		{
 			*countofaddresses = resultCount;
-			return result;
+			return result; // and return the result.
 		}
 		else
 		{
+			// else return NULL
 			*countofaddresses = 0;
 			free(result);
 			return NULL;
@@ -267,8 +305,8 @@ char* findStatus(struct Map* map, const char* key)
 			{
 				if(strlen(map->Mapitems[i].status) > 0)
 				{
-					return map->Mapitems[i].status;
-					clock_gettime(CLOCK_REALTIME, &(map->Mapitems[i].TimeStamp));
+					return map->Mapitems[i].status; // update the status of the given key,
+
 				}
 				else
 				{
@@ -312,13 +350,13 @@ char* StructureStringForSignal(struct Map* map, const int forclient)
 		{
 			if(map->Mapitems[i].value != forclient )
 			{
-				char* address = map->Mapitems[i].address;
-				char* status = map->Mapitems[i].status;
+				char* address = map->Mapitems[i].address; // collect the address
+				char* status = map->Mapitems[i].status; // collect the status.
 
-				char buffer[256];
+				char buffer[256]; // we get a compute the buffer,
 				sprintf(buffer, "%s %s,", address, status);
 
-				returner = (char*)realloc(returner, strlen(returner)+strlen(buffer)+1);
+				returner = (char*)realloc(returner, strlen(returner)+strlen(buffer)+1); // returner returns the formulated str
 				strcat(returner, buffer);
 			}
 		}
@@ -340,6 +378,6 @@ void printMap(struct Map *map)
 {
     for (int i = 0; i < map->currentsize; i++)
 		{
-        printf("Address: %s, Value: %d, Syncedaddress: %s, Status: %s, TimeStamp: %ld.%09ld seconds \n", map->Mapitems[i].address, map->Mapitems[i].value, map->Mapitems[i].syncedaddress,map->Mapitems[i].status, map->Mapitems[i].TimeStamp.tv_sec, map->Mapitems[i].TimeStamp.tv_nsec);
+        printf("Address: %s, Value: %d, Syncedaddress: %s, Status: %s TimeStamp: %ld seconds, %ld nanoseconds \n", map->Mapitems[i].address, map->Mapitems[i].value, map->Mapitems[i].syncedaddress,map->Mapitems[i].status,map->Mapitems[i].lastUsedTime.tv_sec,map->Mapitems[i].lastUsedTime.tv_nsec);
     }
 }

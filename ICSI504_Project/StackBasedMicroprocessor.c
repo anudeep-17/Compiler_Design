@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			//===================================== server - client connection establishment ===============================================================
 			int clientSocket;
 			struct sockaddr_in serverAddress;
-			clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+			clientSocket = socket(AF_INET, SOCK_STREAM, 0); // creates a socket.
 
 			//error handling
 			if (clientSocket == -1)
@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 
+			//========================= sets the properties of socket ========================================================================================
 			serverAddress.sin_family = AF_INET;
 			serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
 			serverAddress.sin_port = htons(59911);

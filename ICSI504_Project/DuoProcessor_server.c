@@ -11,19 +11,20 @@
 
 #include "VariableManager.h"
 
+// all global variables...
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_barrier_t barrier; // Declare the barrier
-
-int numberofactiveterminals = 0;
-char filenames[2][256];
-int filenamesRecieved = 0;
-int UseOnlyOneFile = 0;
+// this will be used decide the connection statuses
+int numberofactiveterminals = 0; // computes number of active terminals,
+char filenames[2][256]; // both the filenames recieved from two different terminals.
+int filenamesRecieved = 0; // filenames received from terminals
+int UseOnlyOneFile = 0; // use only one file is basically used when one processor establishes connection and waits for more than 15 secs.
 struct VariableContainer MemoryBus; // VariableContainer to store variables basing on scope while running abmfile
-struct Map lastedited;
+struct Map lastedited; // last edited is used to make sure we maintain states of each processor accordingly.
 int clients[2];
 //=================================================================Memory BUS ======================================================================================
 
-
+// --------- PTHREAD_MUTEX is used to lock and unlock shared variables to make sure they have concurrency and combined usage mangement.
 
 //=================================================================server===========================================================================================
 void handleTimeout()
@@ -32,13 +33,16 @@ void handleTimeout()
     UseOnlyOneFile = 1;
 }
 
+/*
+ConnectionHandler: handles connection of the server with clients.
+*/
 void* ConnectionHandler(void* args)
 {
   //handles multiple connections to the server and thread each connection.
   int clientsocketsfromeachterminal = *((int*)args);
   char buffer[256];
 
-  recv(clientsocketsfromeachterminal, buffer, sizeof(buffer), 0);
+  recv(clientsocketsfromeachterminal, buffer, sizeof(buffer), 0); // recieve client connections and establish them.
 
   if(filenamesRecieved < 2)
   {
@@ -59,13 +63,16 @@ void* ConnectionHandler(void* args)
   return NULL;
 }
 
+/*
+StartExcecution_SignalReceiver: this will use the client socket and export a signal to start the excecution and after sending signal waits until the client socket sends END.
+*/
 void* StartExcecution_SignalReceiver(void *args)
 {
   int clientsocket = *((int*)args);
   int startexecutionflag = 1;
   int bytes_received;
 
-  send(clientsocket, &startexecutionflag, sizeof(int), 0);
+  send(clientsocket, &startexecutionflag, sizeof(int), 0); // sends startexecutionflag to the client specifing excecute
   while(1)
   {
     // loops for ever listening to the client and waits until it ends.
@@ -79,14 +86,14 @@ void* StartExcecution_SignalReceiver(void *args)
       //locks the task on MemoryBus here.
       if(token !=NULL)
       {
-        if(strcmp(token, "GlobalVars") == 0)
+        if(strcmp(token, "GlobalVars") == 0) // if the recieved command have token Glovalvars which means client sent its global vars.
         {
+          // format of instruction recieved GlobalVars: <variablenames>
           token = strtok(NULL," ");
           while(token != NULL)
           {
-
             // printf("var: %s \n", token);
-            pthread_mutex_lock(&mutex);
+            pthread_mutex_lock(&mutex); // we lock the bus and insert the global vars in it.
             if(FindInContainer(&MemoryBus, token) == INT_MIN)
             {
               // printf("added var: %s \n", token);
@@ -102,26 +109,31 @@ void* StartExcecution_SignalReceiver(void *args)
         else if(strcmp(token, "Write") == 0)
         {
           // writes the value recieved from core to the variable container while locking it for establishing concurrency
+          /*
+            this will get the command write in format: Write: <variablename>,<variablevalue>
+          */
           char* nameofvariable;
           int value;
           token = strtok(NULL,",");
           token++;
-          //name of variable
+          //-------------------------name of variable
           nameofvariable = token;
-          // printf("\n\n %s\n\n", token);
           token = strtok(NULL, ",");
+          //------------------------value for the variable
           value = atoi(token);
-          // printf("\n\n %s\n\n", token);
 
+          // ========================  locks the memory bus and uses it
           pthread_mutex_lock(&mutex);
           if(FindInContainer(&MemoryBus, nameofvariable) != INT_MIN)
           {
+            // updates the global address with new value
             updateGlobalContainerbyaddress(&MemoryBus, getaddressfromGlobalContainer(&MemoryBus, nameofvariable), value);
             pthread_mutex_unlock(&mutex);
 
+            // now update the lastedited,
             pthread_mutex_lock(&mutex);
             insert(&lastedited, nameofvariable, clientsocket);
-            InsertStatus(&lastedited, nameofvariable, "Initialize_Invalid");
+            InsertStatus(&lastedited, nameofvariable, "Initialize_Invalid"); // updates this so the the other processor can update the status
             pthread_mutex_unlock(&mutex);
           }
           else
@@ -134,21 +146,24 @@ void* StartExcecution_SignalReceiver(void *args)
         else if(strcmp(token, "Read") == 0)
         {
             // reads the value recieved from core to the variable container while locking it for establishing concurrency and sends it to the core
+            /*
+              format of signal-> Read: <Variablename>
+            */
             char* nameofvariable;
             int value;
 
             token = strtok(NULL, " ");
-            // printf("\n\n %s \n\n", token);
             nameofvariable = token;
             //locks the lastedited and unlocks once works is done
             pthread_mutex_lock(&mutex);
             insert(&lastedited, nameofvariable, clientsocket);
-            InsertStatus(&lastedited, nameofvariable, "Shared");
+            InsertStatus(&lastedited, nameofvariable, "Shared");// updates this so the the other processor can update the status
             pthread_mutex_unlock(&mutex);
 
+            // waits for 0.4 sec to see if the other processor is in M and wants to write to bus before becoming I -- this is programatically computed to take this time to finish bus protocol..
             int timeout = 0.4;
             time_t starttime = time(NULL);
-            while(time(NULL) - starttime < timeout)
+            while(time(NULL) - starttime < timeout) // until elapsed time we wait.
             {
                 //locks the variable  and unlocks once works is done
               pthread_mutex_lock(&mutex);
@@ -163,6 +178,7 @@ void* StartExcecution_SignalReceiver(void *args)
               }
             }
 
+            // after elapsed time using the updated value we read it and send it back to the client.
             pthread_mutex_lock(&mutex);
             value = FindInContainer(&MemoryBus, nameofvariable);
             pthread_mutex_unlock(&mutex);
@@ -173,25 +189,28 @@ void* StartExcecution_SignalReceiver(void *args)
             sprintf(charval, "%d", value);
             send(clientsocket, charval, 10, 0);
 
+            //we update the status again the other processor might have wrote a value to this before reading, so to make appropriate change we update again.
             pthread_mutex_lock(&mutex);
             insert(&lastedited, nameofvariable, clientsocket);
             InsertStatus(&lastedited, nameofvariable, "Shared");
             pthread_mutex_unlock(&mutex);
 
-            // printf("%s : %d \n\n", nameofvariable, value);
+            printf("%s : %d \n\n", nameofvariable, value);
             // pthread_mutex_unlock(&mutex);
         }
         else if(strcmp(token, "Changes?") == 0)
         {
-          // send the changes if any
+          // send the changes if any -- which is basically send for eveyr instruction performed in processor to have status intergirty in all the processors.
+            printf("last edited work :\n\n\n\n");
             printMap(&lastedited);
+            printf("\n\n\n\n");
             char sendtocore[1024];
             strcpy(sendtocore, StructureStringForSignal(&lastedited, clientsocket));
             send(clientsocket, sendtocore, 1024, 0);
         }
         else if(strcmp(token, "Sync") == 0)
         {
-          // setup the sync between recieved variables
+          // setup the sync between recieved variables as it is memeory address work we inform bus that there is a sync on the ram at these addresses.
          char variablethatwillsync[50];
          char variableforsync[50];
 
@@ -211,6 +230,7 @@ void* StartExcecution_SignalReceiver(void *args)
         }
         else if(strcmp(token, "END") == 0)
         {
+          // end the loop, stop listening and now we move to end socket.
           break;
         }
       }
@@ -219,6 +239,10 @@ void* StartExcecution_SignalReceiver(void *args)
   }
 }
 
+
+/*
+CloseConnections: END ALL SOCKETS CONNECTION AND SERVER -- SAFE EXIT.
+*/
 void CloseConnections(const int clientsockets[], const int serverSocket, int numberofconnections)
 {
   if(numberofconnections == 1)
@@ -233,6 +257,7 @@ void CloseConnections(const int clientsockets[], const int serverSocket, int num
   close(clientsockets[1]);
   close(serverSocket);
 }
+
 
 int main()
 {
@@ -269,6 +294,9 @@ int main()
   listen(serverSocket, 2);
 
   pthread_t threads[2];
+
+
+  // use the two threads to establish connection between two clients and use them to run concurrentyl
 
   for(int i = 0; i<2; i++)
   {
